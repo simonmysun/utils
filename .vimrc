@@ -1,0 +1,1 @@
+echo 'Please do not use vim! Use emacs instead. '
