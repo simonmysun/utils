@@ -1,5 +1,5 @@
-# pingback=`/usr/bin/ping -w 5 -c 1 v.makelove.expert`
-pingback=`/usr/bin/ping -w 5 -c 1 127.0.0.1`
+pingback=`/usr/bin/ping -w 5 -c 1 v.makelove.expert`
+# pingback=`/usr/bin/ping -w 5 -c 1 127.0.0.1`
 latency=`grep -oP '\d*(\.\d+)? ms' <<< ${pingback} | head -1`
 if [ ${#latency} -eq '0' ]; then
     line=`sed -n '2 p' <<< "${pingback}"`

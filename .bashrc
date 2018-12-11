@@ -205,3 +205,5 @@ LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64\
        ${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
 source /usr/share/nvm/init-nvm.sh
+
+PATH=/home/mysun/.gem/ruby/2.5.0/bin${PATH:+:${PATH}}
