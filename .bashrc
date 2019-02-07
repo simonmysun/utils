@@ -179,6 +179,7 @@ fi
 export PATH=$HOME/local/bin:$PATH
 export NODE_PATH=$HOME/local/lib/node_modules
 
+alias please='sudo'
 alias term='xfce4-terminal'
 alias term3='term&term&term'
 alias vi="bash -c 'emacsclient -t {%0}'"
