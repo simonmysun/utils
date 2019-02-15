@@ -193,6 +193,8 @@ alias ytdl='youtube-dl --all-subs'; # --proxy socks5://127.0.0.1:1080'
 #alias ue='rm -rf ~/.idm/*.*|rm -rf ~/.idm/uex/.* | setsid /usr/bin/uex'
 # export ELECTRON_MIRROR="https://npm.taobao.org/mirrors/electron/"
 alias doit='npm run start --'
+sqt="'"
+alias killvlc='kill -9 $(killall -v vlc 2>&1 | sed -n "s/^.*(\([0-9]\+\)).*$/\1/p" -)'
 
 function keepretrying() {
     while true; do
