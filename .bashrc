@@ -93,7 +93,7 @@ function ps1() {
     if [ "$M" != "" ]; then
         echo -n -e "${STYLE_INFO}($M)${STYLE_RESET}";
     fi;
-    echo -n -e "${STYLE_DECORATION}]${STYLE_RESET} ${STYLE_LIGHT}\D{%c %Z}${STYLE_RESET}${STYLE_DECORATION}\n--> ${STYLE_RESET}";
+    echo -n -e "${STYLE_DECORATION}]${STYLE_RESET} ${STYLE_LIGHT}\D{%c %Z}${STYLE_RESET}${STYLE_DECORATION}\n$ ${STYLE_RESET}";
 }
 
 PS1='`
@@ -131,7 +131,7 @@ PS1='`
     if [ "$M" != "" ]; then
         echo -n -e "${STYLE_INFO}($M)${STYLE_RESET}";
     fi;
-    echo -n -e "${STYLE_DECORATION}]${STYLE_RESET} ${STYLE_LIGHT}\D{%c %Z}${STYLE_RESET}${STYLE_DECORATION}\n--> ${STYLE_RESET}";
+    echo -n -e "${STYLE_DECORATION}]${STYLE_RESET} ${STYLE_LIGHT}\D{%c %Z}${STYLE_RESET}${STYLE_DECORATION}\n$ ${STYLE_RESET}";
 `'
 
 unset color_prompt force_color_prompt
