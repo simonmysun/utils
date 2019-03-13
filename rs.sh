@@ -1,0 +1,2 @@
+redshift -x
+redshift -v
