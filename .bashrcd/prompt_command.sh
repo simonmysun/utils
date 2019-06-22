@@ -2,7 +2,7 @@
 # https://github.com/jichu4n/bash-command-timer/blob/master/bash_command_timer.sh
 
 BCT_TIME_FORMAT='%c %z'
-BCT_COLOR='1;30'
+BCT_COLOR='37'
 if date +'%N' | grep -qv 'N'; then
     BCTTime="date '+%s%N'"
     function BCTPrintTime() {
