@@ -58,83 +58,8 @@ fi
 
 export TZ=Europe/Berlin
 
-function ps1() {
-    a=$?;
-    STYLE_RESET="\[\033[m\]";
-    STYLE_ALERT="\[\033[01;32;41m\]";
-    STYLE_DECORATION="\[\033[0;36m\]";
-    STYLE_PRIMARY="\[\033[01;32m\]";
-    STYLE_SECONDARY="\[\033[01;34m\]";
-    STYLE_INFO="\[\033[33;40m\]";
-    STYLE_LIGHT="\[\033[1;30m\]";
-    if [ $a -ne 0 ]; then
-        echo -n -e "${STYLE_ALERT}{$a}";
-    fi;
-    echo -n -e "${STYLE_DECORATION}[${STYLE_RESET}${STYLE_PRIMARY}\u@\h${STYLE_RESET} ${STYLE_SECONDARY}\W";
-    B=$(git branch 2>/dev/null | sed -e "/^ /d" -e "s/* \(.*\)/\1/");
-    if [ "$B" != "" ]; then
-        S="git";
-    elif [ -e .bzr ]; then
-        S=bzr;
-    elif [ -e .hg ]; then
-        S="hg";
-    elif [ -e .svn ]; then
-        S="svn";
-    else
-        S="";
-    fi;
-    if [ "$S" != "" ]; then
-        if [ "$B" != "" ]; then
-            M=$S:$B;
-        else
-            M=$S;
-        fi;
-    fi;
-    if [ "$M" != "" ]; then
-        echo -n -e "${STYLE_INFO}($M)${STYLE_RESET}";
-    fi;
-    echo -n -e "${STYLE_DECORATION}]${STYLE_RESET} ${STYLE_LIGHT}\D{%c %Z}${STYLE_RESET}${STYLE_DECORATION}\n$ ${STYLE_RESET}";
-}
-
-PS1='`
-    a=$?;
-    STYLE_RESET="\[\033[m\]";
-    STYLE_ALERT="\[\033[01;32;41m\]";
-    STYLE_DECORATION="\[\033[0;36m\]";
-    STYLE_PRIMARY="\[\033[01;32m\]";
-    STYLE_SECONDARY="\[\033[01;34m\]";
-    STYLE_INFO="\[\033[33;40m\]";
-    STYLE_LIGHT="\[\033[1;30m\]";
-    if [ $a -ne 0 ]; then
-        echo -n -e "${STYLE_ALERT}{$a}";
-    fi;
-    echo -n -e "${STYLE_DECORATION}[${STYLE_RESET}${STYLE_PRIMARY}\u@\h${STYLE_RESET} ${STYLE_SECONDARY}\W";
-    B=$(git branch 2>/dev/null | sed -e "/^ /d" -e "s/* \(.*\)/\1/");
-    if [ "$B" != "" ]; then
-        S="git";
-    elif [ -e .bzr ]; then
-        S=bzr;
-    elif [ -e .hg ]; then
-        S="hg";
-    elif [ -e .svn ]; then
-        S="svn";
-    else
-        S="";
-    fi;
-    if [ "$S" != "" ]; then
-        if [ "$B" != "" ]; then
-            M=$S:$B;
-        else
-            M=$S;
-        fi;
-    fi;
-    if [ "$M" != "" ]; then
-        echo -n -e "${STYLE_INFO}($M)${STYLE_RESET}";
-    fi;
-    echo -n -e "${STYLE_DECORATION}]${STYLE_RESET} ${STYLE_LIGHT}\D{%c %Z}${STYLE_RESET}${STYLE_DECORATION}\n$ ${STYLE_RESET}";
-`'
-
-unset color_prompt force_color_prompt
+source ./.bashrcd/ps1.sh
+source ./.bashrcd/prompt_command.sh
 
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
@@ -176,33 +101,11 @@ if ! shopt -oq posix; then
   fi
 fi
 
+
+source ./.bashrcd/utils.sh
+
 export PATH=$HOME/local/bin:$PATH
 export NODE_PATH=$HOME/local/lib/node_modules
-
-alias please='sudo'
-alias term='xfce4-terminal'
-alias term3='term&term&term'
-alias vi="bash -c 'emacsclient -t {%0}'"
-alias vim='emacsclient -t'
-alias gvim='emacsclient -c'
-alias emacs='setsid emacsclient -c'
-alias thunar='setsid thunar'
-alias ytdl='youtube-dl --all-subs'; # --proxy socks5://127.0.0.1:1080'
-#alias 'you-get'='you-get -s 127.0.0.1:1080'
-#alias 7zx='7zx_f() { 7z x "-o$1"; };7zx_f;'
-#alias ue='rm -rf ~/.idm/*.*|rm -rf ~/.idm/uex/.* | setsid /usr/bin/uex'
-# export ELECTRON_MIRROR="https://npm.taobao.org/mirrors/electron/"
-alias doit='npm run start --'
-sqt="'"
-alias killvlc='kill -9 $(killall -v vlc 2>&1 | sed -n "s/^.*(\([0-9]\+\)).*$/\1/p" -)'
-
-function keepretrying() {
-    while true; do
-        command && break;
-        sleep 5
-    done
-}
-
 PATH=/usr/local/cuda-10.0/bin${PATH:+:${PATH}}
 LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64\
        ${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
@@ -210,3 +113,4 @@ LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64\
 source /usr/share/nvm/init-nvm.sh
 
 PATH=/home/mysun/.gem/ruby/2.5.0/bin${PATH:+:${PATH}}
+
