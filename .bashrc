@@ -58,8 +58,8 @@ fi
 
 export TZ=Europe/Berlin
 
-source ./.bashrcd/ps1.sh
-source ./.bashrcd/prompt_command.sh
+source ~/.bashrcd/ps1.sh
+source ~/.bashrcd/prompt_command.sh
 
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
@@ -102,7 +102,7 @@ if ! shopt -oq posix; then
 fi
 
 
-source ./.bashrcd/utils.sh
+source ~/.bashrcd/utils.sh
 
 export PATH=$HOME/local/bin:$PATH
 export NODE_PATH=$HOME/local/lib/node_modules

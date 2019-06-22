@@ -39,13 +39,13 @@ function print_time() {
     local num_msecs=$(($command_time % $SEC / $MSEC))
     local time_str=""
     if [ $num_days -gt 0 ]; then
-        time_str="${time_str}${num_days}d "
+        time_str="${time_str}${num_days}d"
     fi
     if [ $num_hours -gt 0 ]; then
-        time_str="${time_str}${num_hours}h "
+        time_str="${time_str}${num_hours}h"
     fi
     if [ $num_mins -gt 0 ]; then
-        time_str="${time_str}${num_mins}m "
+        time_str="${time_str}${num_mins}m"
     fi
     local num_msecs_pretty=''
     #if [ -n "$BCT_MILLIS" ] && [ $BCT_MILLIS -eq 1 ]; then
