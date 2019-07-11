@@ -12,6 +12,7 @@ alias ytdl='youtube-dl --all-subs'; # --proxy socks5://127.0.0.1:1080'
 alias doit='npm run start --'
 sqt="'"
 alias killvlc='kill -9 $(killall -v vlc 2>&1 | sed -n "s/^.*(\([0-9]\+\)).*$/\1/p" -)'
+alias dedate='node ~/utils/time.js'
 
 function _please(){
     if [ -z $1 ]; then
