@@ -60,6 +60,7 @@ export TZ=Europe/Berlin
 
 source ~/.bashrcd/ps1.sh
 source ~/.bashrcd/prompt_command.sh
+source ~/.bashrcd/acd_func.sh
 
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
