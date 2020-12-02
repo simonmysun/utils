@@ -13,6 +13,7 @@ alias doit='npm run start --'
 sqt="'"
 alias killvlc='kill -9 $(killall -v vlc 2>&1 | sed -n "s/^.*(\([0-9]\+\)).*$/\1/p" -)'
 alias dedate='node ~/utils/time.js'
+alias tg='telegram-cli -W -e'
 
 function _please(){
     if [ -z $1 ]; then
@@ -34,5 +35,17 @@ function keepretrying() {
 
 zlipd() (printf "\x1f\x8b\x08\x00\x00\x00\x00\x00" |cat - $@ |gzip -dc)
 #https://unix.stackexchange.com/questions/22834/how-to-uncompress-zlib-data-in-unix
-flasher () { while true; do printf \\e[?5h; sleep 0.1; printf \\e[?5l; read -s -n1 -t1 && break; done; }
+flasher () {
+    while true; do
+        printf "\\e[?5h";
+        sleep 0.1;
+        printf "\\e[?5l";
+        read -s -n1 -t1 && break;
+    done;
+}
 #https://zh.wikipedia.org/w/index.php?oldid=54692737
+tgs() {
+    para="'msg $1 $(cat $2)'";
+    echo $para;
+    bash -c "telegram-cli --json -W -e $para";
+}

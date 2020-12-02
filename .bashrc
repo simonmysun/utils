@@ -106,6 +106,7 @@ fi
 source ~/.bashrcd/utils.sh
 
 export PATH=$HOME/local/bin:$PATH
+export GOPATH=$HOME/.go
 export NODE_PATH=$HOME/local/lib/node_modules
 PATH=/usr/local/cuda-10.0/bin${PATH:+:${PATH}}
 LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64\
@@ -113,5 +114,11 @@ LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64\
 
 source /usr/share/nvm/init-nvm.sh
 
-PATH=/home/mysun/.gem/ruby/2.5.0/bin${PATH:+:${PATH}}
+PATH=$HOME/.gem/ruby/2.5.0/bin${PATH:+:${PATH}}
 
+
+PATH="/home/mysun/perl5/bin${PATH:+:${PATH}}"; export PATH;
+PERL5LIB="/home/mysun/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
+PERL_LOCAL_LIB_ROOT="/home/mysun/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"; export PERL_LOCAL_LIB_ROOT;
+PERL_MB_OPT="--install_base \"/home/mysun/perl5\""; export PERL_MB_OPT;
+PERL_MM_OPT="INSTALL_BASE=/home/mysun/perl5"; export PERL_MM_OPT;
