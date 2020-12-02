@@ -10,4 +10,4 @@ var isDstObserved = function (date) {
 
 var d = new Date();
 
-console.log(`${'So,Mo,Di,Mi,Do,Fr,Sa'.split(',')[d.getDay()]}. ${d.getDate()}. ${'Jan,Feb,Mrz,Apr,Mai,Jun,Jul,Aug,Sep,Okt,Nov,Dez'.split(',')[d.getMonth()]}. ${d.getFullYear()} ${d.toTimeString().slice(0, 8)} ${isDstObserved(d) ? 'CEST (UTC+2)' : 'CST (UTC+1)'}`)
+console.log(`${'So,Mo,Di,Mi,Do,Fr,Sa'.split(',')[d.getDay()]}. ${d.getDate()}. ${'Jan,Feb,Mrz,Apr,Mai,Jun,Jul,Aug,Sep,Okt,Nov,Dez'.split(',')[d.getMonth()]}. ${d.getFullYear()} ${d.toTimeString().slice(0, 8)} ${isDstObserved(d) ? 'CEST (UTC+2)' : 'CET (UTC+1)'}`)
