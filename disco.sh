@@ -24,6 +24,6 @@ x=0
 while :
 do
     x=$(( ($x + $step) % 360 ));
-    curl -s -S "http://admin:3.1415926@192.168.15.$ip/?m=1&h0=$x" > /dev/null;
+    curl -s -S "http://admin:3.1415926@192.168.15.$ip/?m=1&h0=$x&n0=100&d0=100" > /dev/null;
     sleep $interval
 done
