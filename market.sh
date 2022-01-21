@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# source /opt/risk/env/_common/proxy
-
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
