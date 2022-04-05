@@ -1,0 +1,12 @@
+[Unit]
+Description=radeontop_exporter
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/usr/bin/radeontop_exporter.py
+
+[Install]
+WantedBy=multi-user.target
