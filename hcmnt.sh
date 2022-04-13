@@ -150,7 +150,7 @@ hcmnt() {
 
     # strip off the old ### comment if there was one so they don't accumulate
     # then build the string (if text or extra aren't empty, add them plus a space)
-    hcmnt="${hcmnt% ### *} ### ${text:+$text }${tty:+$tty }${ip:+$ip }${extra:+$extra }$cwd"
+    hcmnt="${hcmnt% ### *}### ${text:+$text ### }${tty:+$tty ### }${ip:+$ip ### }${extra:+$extra ### }$cwd"
 
     if [[ $LogOpt ]]
     then
@@ -171,7 +171,7 @@ hcmnt() {
 } # END FUNCTION hcmnt
 
 # set a default (must use -e option to include it)
-export hcmntextra='date "+%Y%m%d %R"'      # you must be really careful to get the quoting right
+export hcmntextra='date --iso-8601=ns'      # you must be really careful to get the quoting right
 
 # start using it
 # export PROMPT_COMMAND='hcmnt
