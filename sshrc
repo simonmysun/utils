@@ -1,0 +1,4 @@
+ip=`echo $SSH_CONNECTION | cut -d " " -f 1`
+
+logger -t ssh-wrapper $USER login from $ip
+notify-send "SSH $USER login from $ip"
