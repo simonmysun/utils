@@ -1,0 +1,16 @@
+DEVICE_NAMES=(
+  'tasmota_D2FB56'
+  'tasmota_D2FBD2'
+  'tasmota_D2FB0C'
+  'tasmota_D2EDA0'
+  'tasmota_D2FABD'
+  'tasmota_D2FA8C'
+);
+DEVICE_DESCRIPTIONS=(
+  'bedroom ceiling'
+  'homeoffice table'
+  'at Guo, unallocated'
+  'balcony'
+  'bedroom table 0'
+  'bedroom table 1'
+);
