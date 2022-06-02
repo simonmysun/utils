@@ -25,8 +25,6 @@ else
     exit 69
 fi
 
-echo $HOST $PORT $USERNAME $PASSWORD $DEVICE $2
-
 if [[ $2 =~ ^O(N|FF)$ ]]; then
     echo "Switching power to $2"
     mosquitto_pub -h "$HOST" -p "$PORT" -u "$USERNAME" -P "$PASSWORD" -t "cmnd/$DEVICE/POWER" -m "$2" &
