@@ -1,1 +1,1 @@
-ln -s ~/git/simonmysun/praxis/utils/ ~/utils
+ln -sfn ~/git/simonmysun/praxis/utils/ ~/utils
