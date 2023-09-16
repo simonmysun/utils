@@ -1,0 +1,7 @@
+- run `probe_stream.sh` first. This generates `files.txt` and `ffprobe.txt`
+- view `probe_stream.sh` to check the resolution and framerate (`cat ffprobe.txt | grep Video`)
+- run `genlist.sh` to generate `concat.txt`
+- edit `concat.txt` to adjust order and pick what to concat
+- run `concat.sh`
+- repeat until all video are done
+- remove `concat.txt`
