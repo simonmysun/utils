@@ -10,7 +10,7 @@ case "$1" in
     ;;
   start)
     sh $0 stop
-    pactl load-module module-simple-protocol-tcp rate=48000 format=s16le channels=2 source=alsa_output.pci-0000_00_1f.3.analog-stereo.monitor record=true port=8901
+    pactl load-module module-simple-protocol-tcp rate=48000 format=s16le channels=2 source=alsa_output.usb-AKG_C44-USB_Microphone_AKG_C44-USB_Microphone-00.analog-stereo.monitor record=true port=8901
     # pactl load-module module-simple-protocol-tcp rate=48000 format=s16le channels=2 source=ladspa_output.mbeq_1197.mbeq.monitor record=true port=8901
     ;;
   stop)
