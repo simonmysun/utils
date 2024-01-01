@@ -1,1 +1,2 @@
-*.production.rc
+*.env
+node_modules/*
