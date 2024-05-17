@@ -3,7 +3,7 @@
 if [ $# -lt 2 ]; then
     cat << END_OF_USAGE
 Run command in the network namespace of a compose service
-usage:
+Usage:
 /path/to/compose_project/ $ exec_in_container.sh [service_name] [command] ...
 END_OF_USAGE
     exit 64
