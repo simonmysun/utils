@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+INPUT=$1
+INPUT_FILENAME="${INPUT%.*}"
+
+ffmpeg \
+  -i "${INPUT}" \
+  -map 0 \
+  -map_chapters 0 \
+  -movflags use_metadata_tags \
+  -map_metadata 0 \
+  -ignore_unknown \
+  -c:d copy \
+  -c:v libx265 \
+  -maxrate 200M \
+  -bufsize 1000M \
+  -c:a libopus \
+  -b:a 128K \
+  "${INPUT_FILENAME}.reencoded.mp4" && \
+  exiftool \
+  -TagsFromFile "${INPUT}" \
+  "-all:all>all:all" \
+  "${INPUT_FILENAME}.reencoded.mp4"
