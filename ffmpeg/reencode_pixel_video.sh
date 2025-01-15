@@ -12,9 +12,10 @@ ffmpeg \
   -map_metadata 0 \
   -ignore_unknown \
   -c:d copy \
-  -c:v libsvtav1 \
-  -crf 20 \
-  -preset 5 \
+  -c:v libx265 \
+  -maxrate 200M \
+  -bufsize 1000M \
+  -preset slow \
   -c:a libopus \
   -b:a 128K \
   "./transcoded/${INPUT_FILENAME}.reencoded.mp4" && \
@@ -22,3 +23,8 @@ ffmpeg \
   -TagsFromFile "${INPUT}" \
   "-all:all>all:all" \
   "./transcoded/${INPUT_FILENAME}.reencoded.mp4"
+
+
+  # -c:v libsvtav1 \
+  # -crf 35 \
+  # -preset 5 \
