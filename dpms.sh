@@ -1,17 +1,38 @@
 #!/usr/bin/env bash
 
-if [ $# -lt 1 ]; then
+print_usage() {
     cat <<END_OF_USAGE
 Usage
 blank.sh {enable,disable}
 END_OF_USAGE
     exit 64;
+}
+
+if [ $# -lt 1 ]; then
+    print_usage;
 fi
 
+echo ">>>DPMS: $(xset -q | grep "DPMS is" | awk '{print $3}')"
+echo ">>>Screensaver timeout: $(xset -q | grep "timeout:" | awk '{print $2}')"
+
 if [ $1 == 'enable' ]; then
-    xset +dpms; xset dpms force off;
+    echo "<<<diable screensaver";
+    xset s off;
+    echo "<<<enable dpms";
+    xset +dpms;
+    echo "<<<force monitor off";
+    xset dpms force off;
 elif [ $1 == 'disable' ]; then
-    xset -dpms; xset dpms force on;
+    echo "<<<diable screensaver anyway";
+    xset s off;
+    echo "<<<force monitor on";
+    xset dpms force on;
+    echo "<<<disable dpms";
+    xset -dpms;
 else
-    echo 'Unknown command';
+    echo '!!!Unknown command';
+    print_usage;
 fi
+
+echo ">>>DPMS: $(xset -q | grep "DPMS is" | awk '{print $3}')"
+echo ">>>Screensaver timeout: $(xset -q | grep "timeout:" | awk '{print $2}')"
