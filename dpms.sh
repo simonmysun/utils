@@ -8,7 +8,7 @@ END_OF_USAGE
     exit 64;
 }
 
-if [ $# -lt 1 ]; then
+if [ ${#} -lt 1 ]; then
     print_usage;
 fi
 
@@ -16,7 +16,7 @@ echo ">>>DPMS: $(xset -q | grep "DPMS is" | awk '{print $3}')"
 echo ">>>Screensaver timeout: $(xset -q | grep "timeout:" | awk '{print $2}')"
 
 while true; do
-    if [ $1 == 'enable' ]; then
+    if [ "${1}" = 'enable' ]; then
         echo "<<<diable screensaver";
         xset s off;
         echo "<<<enable dpms";
@@ -25,7 +25,7 @@ while true; do
         xset dpms force off;
         echo "<<<set dpms timeout 30 45 60";
         xset dpms 30 45 60;
-    elif [ $1 == 'disable' ]; then
+    elif [ "${1}" = 'disable' ]; then
         echo "<<<diable screensaver anyway";
         xset s off;
         echo "<<<force monitor on";
