@@ -7,7 +7,7 @@ FIRST_FILE_FILENAME="${FIRST_FILE%.*}"
 
 ffmpeg \
   -f concat \
-  -i "${FIRST_FILE}" \
+  -i concat.txt \
   -map 0 \
   -map_chapters 0 \
   -movflags use_metadata_tags \

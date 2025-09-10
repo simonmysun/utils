@@ -6,20 +6,21 @@ INPUT_FILENAME="${INPUT%.*}"
 # ab-av1 to be tested
 # max-crf to be tested
 
-ab-av1 auto-encode \
+ffmpeg \
   -i "${INPUT}" \
-  --max-crf 18 \
-  --encoder libsvtav1 \
-  --preset 5 \
-  --enc -map=0 \
-  --enc -map_chapters=0 \
-  --enc -movflags=use_metadata_tags \
-  --enc -map_metadata=0 \
-  --enc -ignore_unknown \
-  --enc -c:d=copy \
-  --acodec libopus \
-  --enc -b:a=128K && \
-exiftool \
-  -TagsFromFile "${INPUT}" \
-  "-all:all>all:all" \
-  "${INPUT_FILENAME}.av1.mkv"
+  -c:v libsvtav1 \
+  -crf 18 \
+  -preset 5 \
+  -map 0 \
+  -map_chapters 0 \
+  -movflags use_metadata_tags \
+  -map_metadata 0 \
+  -ignore_unknown \
+  -c:d copy \
+  -c:a libopus \
+  -b:a 128K \
+  "${INPUT_FILENAME}.av1.mp4" # && \
+# exiftool \
+#   -TagsFromFile "${INPUT}" \
+#   "-all:all>all:all" \
+#   "${INPUT_FILENAME}.av1.mp4"
