@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>车速 vs 发动机转速 (Speed vs RPM)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial; margin: 18px; }
+    label { display:block; margin-top:8px }
+    input, textarea { width:100%; max-width:520px; padding:6px; font-size:14px }
+    .row { display:flex; gap:12px; align-items:center; margin-top:8px }
+    .col { flex:1 }
+    canvas { max-width:100%; height:360px }
+    .hint { color:#666; font-size:13px }
+    .controls { margin-bottom:12px }
+    button { margin-top:8px }
+    pre { background:#f6f6f6; padding:8px }
+  </style>
+  <script src="chart.js"></script>
+</head>
+<body>
+  <h2>车速 (km/h) — 发动机转速 (RPM) 对比 (按挡位)</h2>
+
+  <div class="controls">
+    <label>轮胎规格（示例：225/45 R17）
+      <input id="tire" value="225/45 R17" />
+      <div class="hint">宽度(mm) / 断面比(%) R 轮辋(in)</div>
+    </label>
+
+    <label>最终传动比（后桥，final drive），例如 3.91
+      <input id="finalDrive" value="3.91" />
+    </label>
+
+    <label>档位比（每行一个数字，第一行为一挡），例如：
+      <textarea id="gears" rows="6">3.923
+2.136
+1.276
+0.921
+0.756
+0.628</textarea>
+    </label>
+
+    <div class="row">
+      <div class="col">
+        <label>速度范围 (max km/h)
+          <input id="maxSpeed" value="240" />
+        </label>
+      </div>
+      <div class="col">
+        <label>采样点数
+          <input id="points" value="241" />
+        </label>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label>发动机转速下限 (RPM) — 留空表示自动
+          <input id="rpmMin" placeholder="自动" />
+        </label>
+      </div>
+      <div class="col">
+        <label>发动机转速上限 (RPM) — 留空表示自动
+          <input id="rpmMax" placeholder="自动" />
+        </label>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label>最佳扭矩区间 下限 (RPM) — 留空表示不显示
+          <input id="torqueMin" placeholder="例如 1800" value="1750"/>
+        </label>
+      </div>
+      <div class="col">
+        <label>最佳扭矩区间 上限 (RPM) — 留空表示不显示
+          <input id="torqueMax" placeholder="例如 2400" value="2250"/>
+        </label>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label>次优扭矩区间 下限 (RPM) — 留空表示不显示
+          <input id="subTorqueMin" placeholder="例如 1500" value="1500" />
+        </label>
+      </div>
+      <div class="col">
+        <label>次优扭矩区间 上限 (RPM) — 留空表示不显示
+          <input id="subTorqueMax" placeholder="例如 3000" value="3000" />
+        </label>
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="plot">绘图</button>
+      <button id="exportCsv">导出 CSV</button>
+      <button id="reset">恢复默认</button>
+    </div>
+  </div>
+
+  <canvas id="chart"></canvas>
+
+  <h3>说明</h3>
+  <p class="hint">公式说明：
+    车轮转速（rpm）= 发动机转速 / (档位比 * 最终传动比)
+   ；速度 = 车轮转速 * 车轮周长(m) * 60 / 1000 （单位 km/h）
+  </p>
+
+  <script>
+    // Helpers
+    function parseTire(s) {
+      // Accepts formats like "225/45 R17" or "225/45R17" or "205 55 R16"
+      const m = s.match(/(\d{3})\s*\/\s*(\d{1,2})\s*(?:R|r)\s*(\d{1,2})/)
+        || s.match(/(\d{3})\s*\/\s*(\d{1,2})\s*(\d{1,2})/);
+      if (!m) return null;
+      const width = Number(m[1]);
+      const aspect = Number(m[2]);
+      const rimInch = Number(m[3]);
+      return { width, aspect, rimInch };
+    }
+
+    function tireCircumferenceMeters(spec) {
+      // spec: {width(mm), aspect(%), rimInch}
+      const side = spec.width * (spec.aspect/100); // mm
+      const rimMm = spec.rimInch * 25.4; // mm
+      const diameterMm = rimMm + 2*side;
+      const diameterM = diameterMm/1000;
+      return Math.PI * diameterM;
+    }
+
+    function parseGears(text) {
+      return text.split(/\n|,|;/).map(s=>s.trim()).filter(Boolean).map(Number).filter(n=>!isNaN(n) && n>0);
+    }
+
+    // Chart setup
+    const ctx = document.getElementById('chart').getContext('2d');
+    let chart = null;
+
+    function makeChart(labels, datasets, yMin = null, yMax = null, torqueMin = null, torqueMax = null, subTorqueMin = null, subTorqueMax = null) {
+      if (chart) chart.destroy();
+      const yScale = { title: { display: true, text: '发动机转速 (RPM)' } };
+      if (Number.isFinite(yMin)) yScale.min = yMin;
+      if (Number.isFinite(yMax)) yScale.max = yMax;
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          interaction: { mode: 'nearest', axis: 'x', intersect: false },
+          plugins: { 
+            legend: { position: 'bottom' }, 
+            torqueBand: { enabled: true, color: 'rgba(30,144,255,0.12)', borderColor: 'rgba(30,144,255,0.28)', min: torqueMin, max: torqueMax },
+            torqueBandSecondary: { enabled: true, color: 'rgba(255,165,0,0.10)', borderColor: 'rgba(255,165,0,0.28)', min: subTorqueMin, max: subTorqueMax }
+          },
+          scales: {
+            x: { title: { display: true, text: '车速 (km/h)' } },
+            y: yScale
+          }
+        },
+        plugins: [
+          {
+            id: 'torqueBand',
+            beforeDraw(chart, args, options) {
+              const cfg = chart.options.plugins && chart.options.plugins.torqueBand ? chart.options.plugins.torqueBand : {};
+              const min = Number.isFinite(cfg.min) ? cfg.min : null;
+              const max = Number.isFinite(cfg.max) ? cfg.max : null;
+              if (min === null && max === null) return;
+              const yScale = chart.scales.y;
+              const xScale = chart.scales.x;
+              const ctx = chart.ctx;
+              const top = max !== null ? yScale.getPixelForValue(max) : yScale.top;
+              const bottom = min !== null ? yScale.getPixelForValue(min) : yScale.bottom;
+              const left = xScale.left;
+              const right = xScale.right;
+              if (bottom < top) return;
+              ctx.save();
+              ctx.fillStyle = cfg.color || 'rgba(30,144,255,0.12)';
+              ctx.strokeStyle = cfg.borderColor || 'rgba(30,144,255,0.28)';
+              ctx.lineWidth = 1;
+              ctx.fillRect(left, top, right-left, bottom-top);
+              ctx.strokeRect(left, top, right-left, bottom-top);
+              ctx.restore();
+            }
+          },
+          {
+            id: 'torqueBandSecondary',
+            beforeDraw(chart, args, options) {
+              const cfg = chart.options.plugins && chart.options.plugins.torqueBandSecondary ? chart.options.plugins.torqueBandSecondary : {};
+              const min = Number.isFinite(cfg.min) ? cfg.min : null;
+              const max = Number.isFinite(cfg.max) ? cfg.max : null;
+              if (min === null && max === null) return;
+              const yScale = chart.scales.y;
+              const xScale = chart.scales.x;
+              const ctx = chart.ctx;
+              const top = max !== null ? yScale.getPixelForValue(max) : yScale.top;
+              const bottom = min !== null ? yScale.getPixelForValue(min) : yScale.bottom;
+              const left = xScale.left;
+              const right = xScale.right;
+              if (bottom < top) return;
+              ctx.save();
+              ctx.fillStyle = cfg.color || 'rgba(255,165,0,0.10)';
+              ctx.strokeStyle = cfg.borderColor || 'rgba(255,165,0,0.28)';
+              ctx.lineWidth = 1;
+              ctx.fillRect(left, top, right-left, bottom-top);
+              ctx.strokeRect(left, top, right-left, bottom-top);
+              ctx.restore();
+            }
+          }
+        ]
+      });
+    }
+
+    function computeSeries(tireStr, finalDrive, gears, maxSpeed, points) {
+      const spec = parseTire(tireStr);
+      if (!spec) throw new Error('无法解析轮胎规格，请使用类似 225/45 R17 的格式');
+      const circ = tireCircumferenceMeters(spec); // meters
+      const speeds = [];
+      const step = maxSpeed/(points-1);
+      for (let i=0;i<points;i++) speeds.push(Number((i*step).toFixed(3)));
+
+      const datasets = gears.map((g, idx) => {
+        // engineRPM = speed(km/h) * (gear*final) * 1000 / (circumference*60)
+        const data = speeds.map(v => {
+          const rpm = v * (g * finalDrive) * 1000 / (circ * 60);
+          return Math.round(rpm);
+        });
+        const color = `hsl(${(idx*60)%360} 70% 45%)`;
+        return {
+          label: `挡位 ${idx+1} (g=${g})`,
+          data,
+          borderColor: color,
+          backgroundColor: color,
+          tension: 0.12,
+          pointRadius: 0
+        };
+      });
+
+      return { speeds, datasets };
+    }
+
+    function updatePlot() {
+      try {
+        const tireStr = document.getElementById('tire').value;
+        const finalDrive = Number(document.getElementById('finalDrive').value) || 1;
+        const gears = parseGears(document.getElementById('gears').value);
+        const maxSpeed = Number(document.getElementById('maxSpeed').value) || 240;
+        const points = Math.max(2, Math.min(2000, Number(document.getElementById('points').value) || 241));
+        if (gears.length===0) { alert('请填写至少一个档位比'); return; }
+
+  const rpmMinRaw = document.getElementById('rpmMin').value.trim();
+  const rpmMaxRaw = document.getElementById('rpmMax').value.trim();
+  const rpmMin = rpmMinRaw === '' ? null : Number(rpmMinRaw);
+  const rpmMax = rpmMaxRaw === '' ? null : Number(rpmMaxRaw);
+  if (rpmMin !== null && isNaN(rpmMin)) { alert('发动机转速下限必须是数字或留空'); return; }
+  if (rpmMax !== null && isNaN(rpmMax)) { alert('发动机转速上限必须是数字或留空'); return; }
+  if (rpmMin !== null && rpmMax !== null && rpmMin >= rpmMax) { alert('发动机转速下限必须小于上限'); return; }
+
+  const torqueMinRaw = document.getElementById('torqueMin').value.trim();
+  const torqueMaxRaw = document.getElementById('torqueMax').value.trim();
+  const torqueMin = torqueMinRaw === '' ? null : Number(torqueMinRaw);
+  const torqueMax = torqueMaxRaw === '' ? null : Number(torqueMaxRaw);
+  if (torqueMin !== null && isNaN(torqueMin)) { alert('最佳扭矩区间下限必须是数字或留空'); return; }
+  if (torqueMax !== null && isNaN(torqueMax)) { alert('最佳扭矩区间上限必须是数字或留空'); return; }
+  if (torqueMin !== null && torqueMax !== null && torqueMin >= torqueMax) { alert('最佳扭矩区间下限必须小于上限'); return; }
+
+  const subTorqueMinRaw = document.getElementById('subTorqueMin').value.trim();
+  const subTorqueMaxRaw = document.getElementById('subTorqueMax').value.trim();
+  const subTorqueMin = subTorqueMinRaw === '' ? null : Number(subTorqueMinRaw);
+  const subTorqueMax = subTorqueMaxRaw === '' ? null : Number(subTorqueMaxRaw);
+  if (subTorqueMin !== null && isNaN(subTorqueMin)) { alert('次优扭矩区间下限必须是数字或留空'); return; }
+  if (subTorqueMax !== null && isNaN(subTorqueMax)) { alert('次优扭矩区间上限必须是数字或留空'); return; }
+  if (subTorqueMin !== null && subTorqueMax !== null && subTorqueMin >= subTorqueMax) { alert('次优扭矩区间下限必须小于上限'); return; }
+
+  const { speeds, datasets } = computeSeries(tireStr, finalDrive, gears, maxSpeed, points);
+  makeChart(
+    speeds,
+    datasets,
+    Number.isFinite(rpmMin) ? rpmMin : null,
+    Number.isFinite(rpmMax) ? rpmMax : null,
+    Number.isFinite(torqueMin) ? torqueMin : null,
+    Number.isFinite(torqueMax) ? torqueMax : null,
+    Number.isFinite(subTorqueMin) ? subTorqueMin : null,
+    Number.isFinite(subTorqueMax) ? subTorqueMax : null
+  );
+      } catch (err) {
+        alert(err.message || err);
+      }
+    }
+
+    document.getElementById('plot').addEventListener('click', updatePlot);
+
+    document.getElementById('reset').addEventListener('click', ()=>{
+      document.getElementById('tire').value = '225/45 R17';
+      document.getElementById('finalDrive').value = '3.91';
+      document.getElementById('gears').value = '3.75\n2.19\n1.41\n1.00\n0.83';
+      document.getElementById('maxSpeed').value = '240';
+      document.getElementById('points').value = '241';
+      updatePlot();
+    });
+
+    document.getElementById('exportCsv').addEventListener('click', ()=>{
+      try {
+        const tireStr = document.getElementById('tire').value;
+        const finalDrive = Number(document.getElementById('finalDrive').value) || 1;
+        const gears = parseGears(document.getElementById('gears').value);
+        const maxSpeed = Number(document.getElementById('maxSpeed').value) || 240;
+        const points = Math.max(2, Math.min(2000, Number(document.getElementById('points').value) || 241));
+        const { speeds, datasets } = computeSeries(tireStr, finalDrive, gears, maxSpeed, points);
+        // CSV: speed, gear1, gear2, ...
+        const header = ['speed_km_h', ...datasets.map(d=>d.label)];
+        const lines = [header.join(',')];
+        for (let i=0;i<speeds.length;i++){
+          const row = [speeds[i], ...datasets.map(d=>d.data[i])];
+          lines.push(row.join(','));
+        }
+        const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'speed_rpm.csv'; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) { alert(err.message||err); }
+    });
+
+    // Initial draw
+    updatePlot();
+  </script>
+</body>
+</html>
