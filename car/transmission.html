@@ -43,12 +43,12 @@
     <div class="row">
       <div class="col">
         <label>速度范围 (max km/h)
-          <input id="maxSpeed" value="240" />
+          <input id="maxSpeed" value="192" />
         </label>
       </div>
       <div class="col">
         <label>采样点数
-          <input id="points" value="241" />
+          <input id="points" value="193" />
         </label>
       </div>
     </div>
@@ -61,7 +61,7 @@
       </div>
       <div class="col">
         <label>发动机转速上限 (RPM) — 留空表示自动
-          <input id="rpmMax" placeholder="自动" value="5000"/>
+          <input id="rpmMax" placeholder="自动" value="4500"/>
         </label>
       </div>
     </div>
@@ -106,7 +106,7 @@
     车轮转速（rpm）= 发动机转速 / (档位比 * 最终传动比)
    ；速度 = 车轮转速 * 车轮周长(m) * 60 / 1000 （单位 km/h）
   </p>
-
+  <img src="torque-diagram.png" />
   <script>
     // Helpers
     function parseTire(s) {
