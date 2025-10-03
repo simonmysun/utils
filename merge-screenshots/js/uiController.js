@@ -394,7 +394,22 @@ class UIController {
         };
 
         imageProcessor.updateImageCrop(imageProcessor.currentImageIndex, cropData);
-        this.updateSequenceDisplay();
+        // 只更新当前图片的预览，避免切换焦点
+        this.updateSingleImagePreview(imageProcessor.currentImageIndex);
+    }
+
+    /**
+     * 更新单个图片的预览，避免重新渲染整个序列
+     */
+    updateSingleImagePreview(index) {
+        const container = this.elements.sequenceContainer;
+        const imageElement = container.querySelector(`[data-index="${index}"]`);
+        
+        if (imageElement) {
+            const preview = imageProcessor.generatePreview(index);
+            const previewUrl = preview ? preview.toDataURL() : imageProcessor.images[index].dataUrl;
+            imageElement.src = previewUrl;
+        }
     }
 
     /**
@@ -403,7 +418,8 @@ class UIController {
     rotateCurrentImage(degrees) {
         if (imageProcessor.currentImageIndex >= 0) {
             imageProcessor.rotateImage(imageProcessor.currentImageIndex, degrees);
-            this.updateSequenceDisplay();
+            // 只更新当前图片的预览，避免切换焦点
+            this.updateSingleImagePreview(imageProcessor.currentImageIndex);
         }
     }
 
@@ -413,7 +429,8 @@ class UIController {
     flipCurrentImage(type) {
         if (imageProcessor.currentImageIndex >= 0) {
             imageProcessor.flipImage(imageProcessor.currentImageIndex, type);
-            this.updateSequenceDisplay();
+            // 只更新当前图片的预览，避免切换焦点
+            this.updateSingleImagePreview(imageProcessor.currentImageIndex);
         }
     }
 
