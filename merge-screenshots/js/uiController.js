@@ -234,7 +234,12 @@ class UIController {
                     <div class="image-size">${imageLoader.getImageInfo(image).size} • ${imageLoader.getImageInfo(image).dimensions}</div>
                 </div>
                 <div class="image-actions">
-                    <button class="btn btn-small drag-handle" title="拖拽排序">⋮⋮</button>
+                    <div class="move-buttons">
+                        <button class="btn btn-small btn-move" onclick="uiController.moveImageUp(${index})" 
+                                title="上移" ${index === 0 ? 'disabled' : ''}>↑</button>
+                        <button class="btn btn-small btn-move" onclick="uiController.moveImageDown(${index})" 
+                                title="下移" ${index === images.length - 1 ? 'disabled' : ''}>↓</button>
+                    </div>
                     <button class="btn btn-small btn-danger" onclick="uiController.removeImage(${index})" title="删除">×</button>
                 </div>
             </div>
@@ -316,6 +321,28 @@ class UIController {
             this.updateImageList();
             this.updateSequenceDisplay();
             this.updateUI();
+        }
+    }
+
+    /**
+     * 上移图片
+     */
+    moveImageUp(index) {
+        if (index > 0) {
+            imageProcessor.reorderImage(index, index - 1);
+            this.updateImageList();
+            this.updateSequenceDisplay();
+        }
+    }
+
+    /**
+     * 下移图片
+     */
+    moveImageDown(index) {
+        if (index < imageProcessor.images.length - 1) {
+            imageProcessor.reorderImage(index, index + 1);
+            this.updateImageList();
+            this.updateSequenceDisplay();
         }
     }
 
