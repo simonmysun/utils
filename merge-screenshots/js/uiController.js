@@ -56,10 +56,6 @@ class UIController {
             flipHorizontal: document.getElementById('flipHorizontal'),
             flipVertical: document.getElementById('flipVertical'),
             
-            // 接缝工具
-            overlapSlider: document.getElementById('overlapSlider'),
-            overlapValue: document.getElementById('overlapValue'),
-            
             // 智能合并
             enableSmartMerge: document.getElementById('enableSmartMerge'),
             autoRemoveHeader: document.getElementById('autoRemoveHeader'),
@@ -127,12 +123,6 @@ class UIController {
             [this.elements.flipHorizontal, 'click', () => this.flipCurrentImage('horizontal')],
             [this.elements.flipVertical, 'click', () => this.flipCurrentImage('vertical')]
         ]);
-
-        // 接缝控制
-        this.addEventListener(this.elements.overlapSlider, 'input', (e) => {
-            this.elements.overlapValue.textContent = e.target.value + 'px';
-            // TODO: 实现接缝调整逻辑
-        });
 
         // 智能合并
         this.addEventListener(this.elements.applySmartMerge, 'click', () => {

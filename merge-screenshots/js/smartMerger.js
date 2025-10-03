@@ -18,25 +18,20 @@ class SmartMerger {
             return {
                 suggestions: [],
                 headerRepeat: null,
-                footerRepeat: null,
-                seamAdjustments: []
+                footerRepeat: null
             };
         }
 
         const analysis = {
             suggestions: [],
             headerRepeat: null,
-            footerRepeat: null,
-            seamAdjustments: []
+            footerRepeat: null
         };
 
         try {
             // 分析重复的头部和底部内容
             analysis.headerRepeat = await this._detectRepeatingHeader(images);
             analysis.footerRepeat = await this._detectRepeatingFooter(images);
-
-            // 分析相邻图片的最佳接缝位置
-            analysis.seamAdjustments = await this._analyzeSeamPositions(images);
 
             // 生成合并建议
             analysis.suggestions = this._generateSuggestions(analysis);
@@ -148,82 +143,6 @@ class SmartMerger {
     }
 
     /**
-     * 分析最佳接缝位置
-     * @param {Array} images - 图片数组
-     * @returns {Promise<Array>} 接缝调整建议
-     */
-    async _analyzeSeamPositions(images) {
-        const adjustments = [];
-
-        try {
-            for (let i = 0; i < images.length - 1; i++) {
-                const adjustment = await this._findBestSeamPosition(images[i], images[i + 1]);
-                if (adjustment) {
-                    adjustments.push({
-                        imageIndex: i,
-                        nextImageIndex: i + 1,
-                        ...adjustment
-                    });
-                }
-            }
-        } catch (error) {
-            console.error('接缝分析失败:', error);
-        }
-
-        return adjustments;
-    }
-
-    /**
-     * 寻找两张图片之间的最佳接缝位置
-     * @param {object} img1 - 第一张图片
-     * @param {object} img2 - 第二张图片
-     * @returns {Promise<object|null>} 接缝调整建议
-     */
-    async _findBestSeamPosition(img1, img2) {
-        try {
-            // 分析图片底部和顶部的重叠区域
-            const overlapHeight = Math.min(150, Math.floor(Math.min(img1.height, img2.height) * 0.3));
-            const searchRegions = [];
-
-            // 在可能的重叠区域中寻找最佳匹配
-            for (let overlap = 10; overlap <= overlapHeight; overlap += 10) {
-                const similarity = await this._compareImageRegions(
-                    img1, img2,
-                    0, img1.height - overlap, img1.width, overlap, // img1的底部
-                    0, 0, img2.width, overlap // img2的顶部
-                );
-
-                searchRegions.push({
-                    overlap,
-                    similarity,
-                    confidence: similarity > 0.7 ? 'high' : similarity > 0.5 ? 'medium' : 'low'
-                });
-            }
-
-            // 找到最佳匹配
-            const bestMatch = searchRegions.reduce((best, current) => 
-                current.similarity > best.similarity ? current : best
-            );
-
-            if (bestMatch.similarity > 0.5) {
-                return {
-                    suggestedOverlap: bestMatch.overlap,
-                    confidence: bestMatch.confidence,
-                    similarity: bestMatch.similarity,
-                    cropAdjustment: {
-                        firstImage: { bottom: bestMatch.overlap },
-                        secondImage: { top: bestMatch.overlap }
-                    }
-                };
-            }
-        } catch (error) {
-            console.error('接缝位置分析失败:', error);
-        }
-
-        return null;
-    }
-
-    /**
      * 比较两个图片区域的相似度
      * @param {object} img1 - 第一张图片
      * @param {object} img2 - 第二张图片
@@ -328,24 +247,6 @@ class SmartMerger {
             });
         }
 
-        // 接缝调整建议
-        analysis.seamAdjustments.forEach(adjustment => {
-            if (adjustment.confidence === 'high') {
-                suggestions.push({
-                    type: 'seam_adjustment',
-                    title: `优化图片 ${adjustment.imageIndex + 1} 和 ${adjustment.nextImageIndex + 1} 之间的接缝`,
-                    description: `建议重叠${adjustment.suggestedOverlap}像素以获得更好的拼接效果`,
-                    confidence: adjustment.similarity,
-                    action: {
-                        type: 'seam',
-                        imageIndex: adjustment.imageIndex,
-                        overlap: adjustment.suggestedOverlap,
-                        cropAdjustment: adjustment.cropAdjustment
-                    }
-                });
-            }
-        });
-
         return suggestions;
     }
 
@@ -403,23 +304,6 @@ class SmartMerger {
                     const currentCrop = processor.images[imageIndex]?.cropData || { top: 0, bottom: 0, left: 0, right: 0 };
                     const newCrop = { ...currentCrop, ...action.cropData };
                     processor.updateImageCrop(imageIndex, newCrop);
-                }
-                break;
-
-            case 'seam':
-                // 应用接缝调整
-                const { imageIndex, cropAdjustment } = action;
-                
-                if (cropAdjustment.firstImage) {
-                    const currentCrop1 = processor.images[imageIndex]?.cropData || { top: 0, bottom: 0, left: 0, right: 0 };
-                    const newCrop1 = { ...currentCrop1, ...cropAdjustment.firstImage };
-                    processor.updateImageCrop(imageIndex, newCrop1);
-                }
-                
-                if (cropAdjustment.secondImage && processor.images[imageIndex + 1]) {
-                    const currentCrop2 = processor.images[imageIndex + 1]?.cropData || { top: 0, bottom: 0, left: 0, right: 0 };
-                    const newCrop2 = { ...currentCrop2, ...cropAdjustment.secondImage };
-                    processor.updateImageCrop(imageIndex + 1, newCrop2);
                 }
                 break;
 
