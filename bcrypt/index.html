@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Bcrypt Basic Auth Generator</title>
+		<style>
+			:root {
+				color-scheme: light dark;
+			}
+			body {
+				font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+					Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji",
+					"Segoe UI Emoji";
+				margin: 0 auto;
+				padding: 1.25rem;
+				max-width: 900px;
+				line-height: 1.5;
+			}
+			h1 {
+				font-size: 1.5rem;
+				margin: 0 0 1rem 0;
+			}
+			fieldset {
+				border: 1px solid #8884;
+				border-radius: 8px;
+				padding: 1rem;
+				margin-bottom: 1rem;
+			}
+			label {
+				display: block;
+				margin: 0.5rem 0 0.25rem;
+				font-weight: 600;
+			}
+			input[type="text"],
+			input[type="password"],
+			input[type="number"],
+			textarea {
+				width: 100%;
+				padding: 0.5rem 0.6rem;
+				border: 1px solid #8884;
+				border-radius: 6px;
+				font-family: inherit;
+				font-size: 0.95rem;
+				background: transparent;
+				box-sizing: border-box;
+			}
+			.row {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 0.75rem;
+			}
+			.actions {
+				display: flex;
+				gap: 0.5rem;
+				flex-wrap: wrap;
+				margin-top: 0.75rem;
+			}
+			button {
+				padding: 0.5rem 0.8rem;
+				border-radius: 6px;
+				border: 1px solid #8884;
+				background: #4f46e5;
+				color: white;
+				cursor: pointer;
+			}
+			button.secondary {
+				background: transparent;
+				color: inherit;
+			}
+			.out {
+				display: grid;
+				grid-template-columns: 1fr auto;
+				align-items: start;
+				gap: 0.5rem;
+				margin-top: 0.4rem;
+			}
+			code, .mono {
+				font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+					"Liberation Mono", "Courier New", monospace;
+			}
+			small.muted {
+				color: #888;
+			}
+		</style>
+		<!-- bcryptjs (browser) -->
+		<script src="./bcryptjs@v3.0.2.min.js"></script>
+	</head>
+	<body>
+		<h1>Bcrypt Basic Auth Generator</h1>
+		<p class="mono">
+			Generate two useful values:
+		</p>
+		<ul>
+			<li><strong>Basic Authorization header</strong>: Base64 of <code>username:password</code>.</li>
+			<li><strong>htpasswd line (bcrypt)</strong>: <code>username:$2b$...</code> for nginx/Apache Basic Auth files.</li>
+		</ul>
+
+		<fieldset>
+			<legend>Input</legend>
+			<div class="row">
+				<div>
+					<label for="username">Username</label>
+					<div class="out">
+						<input id="username" type="text" autocomplete="username" placeholder="alice" />
+						<button class="secondary" data-copy="#username">Copy</button>
+					</div>
+				</div>
+				<div>
+					<label for="password">Password</label>
+					<div class="out">
+						<input id="password" type="password" autocomplete="new-password" placeholder="••••••••" />
+						<button class="secondary" data-copy="#password">Copy</button>
+					</div>
+				</div>
+			</div>
+					<div class="row">
+				<div>
+					<label for="rounds">Bcrypt cost (rounds)</label>
+					<input id="rounds" type="number" min="4" max="15" step="1" value="10" />
+					<small class="muted">Higher = slower but stronger. 10–12 is typical.</small>
+				</div>
+				<div>
+							<label for="variant">Variant</label>
+							<div class="row" style="grid-template-columns: 1fr auto; align-items:center; gap:.5rem;">
+								<select id="variant">
+									<option value="$2b$" selected>$2b$ (modern)</option>
+									<option value="$2y$">$2y$ (Apache/PHP)</option>
+									<option value="$2a$">$2a$</option>
+								</select>
+								<label class="mono" style="display:flex; gap: .5rem; align-items:center; white-space:nowrap;">
+									<input id="showpw" type="checkbox" /> Show password
+								</label>
+							</div>
+				</div>
+			</div>
+			<div class="actions">
+				<button id="generateBtn">Generate</button>
+				<button id="randomBtn" type="button">Random SHA1 creds</button>
+				<button id="clearBtn" class="secondary" type="button">Clear</button>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<legend>Outputs</legend>
+			<div>
+				<label>username:password (masked)</label>
+				<div class="out">
+					<input id="userPassMasked" class="mono" type="password" readonly />
+					<button class="secondary" data-copy="#userPassMasked">Copy</button>
+				</div>
+				<small class="muted">Masked display; copy reveals full value.</small>
+			</div>
+			<div>
+				<label>Basic Authorization header</label>
+				<div class="out">
+					<input id="basicHeader" class="mono" type="text" readonly />
+					<button class="secondary" data-copy="#basicHeader">Copy</button>
+				</div>
+				<small class="muted">Use as HTTP header: <code>Authorization: Basic &lt;base64&gt;</code></small>
+			</div>
+			<div style="margin-top: .75rem;">
+				<label>htpasswd line (bcrypt)</label>
+				<div class="out">
+					<input id="htpasswdLine" class="mono" type="text" readonly />
+					<button class="secondary" data-copy="#htpasswdLine">Copy</button>
+				</div>
+				<small class="muted">Save into a password file for nginx/Apache, one per line.</small>
+			</div>
+			<div style="margin-top: .75rem;">
+				<label>htpasswd line (escape $ as $$)</label>
+				<div class="out">
+					<input id="htpasswdEscaped" class="mono" type="text" readonly />
+					<button class="secondary" data-copy="#htpasswdEscaped">Copy</button>
+				</div>
+				<small class="muted">Useful for Makefiles or templating where $ needs escaping.</small>
+			</div>
+			<div style="margin-top: .75rem;">
+				<label>Password bcrypt hash only</label>
+				<div class="out">
+					<input id="bcryptOnly" class="mono" type="text" readonly />
+					<button class="secondary" data-copy="#bcryptOnly">Copy</button>
+				</div>
+			</div>
+		</fieldset>
+
+		<details>
+			<summary>Notes</summary>
+			<ul>
+				<li>All hashing happens locally in your browser via <code>bcryptjs</code>.</li>
+				<li>The Basic header uses UTF‑8 for <code>username:password</code> before Base64.</li>
+				<li>Servers typically accept bcrypt variants <code>$2b$</code> or <code>$2y$</code>.</li>
+			</ul>
+		</details>
+
+		<script>
+			async function randomSha1Hex() {
+				if (!(window.crypto && window.crypto.getRandomValues)) {
+					throw new Error("Web Crypto not available for randomness");
+				}
+				const rnd = new Uint8Array(32);
+				crypto.getRandomValues(rnd);
+				if (!(crypto.subtle && crypto.subtle.digest)) {
+					throw new Error("SubtleCrypto SHA-1 not available (use HTTPS or localhost)");
+				}
+				const digest = await crypto.subtle.digest("SHA-1", rnd);
+				const bytes = new Uint8Array(digest);
+				let hex = "";
+				for (let i = 0; i < bytes.length; i++) hex += bytes[i].toString(16).padStart(2, "0");
+				return hex; // 40-char sha1 hex
+			}
+			function utf8ToBase64(str) {
+				const bytes = new TextEncoder().encode(str);
+				let binary = "";
+				for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+				return btoa(binary);
+			}
+
+			function generate() {
+				const username = document.getElementById("username").value ?? "";
+				const password = document.getElementById("password").value ?? "";
+			const rounds = Math.max(4, Math.min(15, Number(document.getElementById("rounds").value || 10)));
+			const variant = (document.getElementById("variant").value || "$2b$").trim();
+
+				// Combined username:password (raw)
+				const combined = `${username}:${password}`;
+
+				// Basic header (UTF-8 aware)
+				const base64 = utf8ToBase64(`${username}:${password}`);
+				const header = `Basic ${base64}`;
+
+				// bcrypt hash
+				const salt = bcrypt.genSaltSync(rounds);
+						let hash = bcrypt.hashSync(password, salt);
+						// Normalize/convert variant prefix if needed
+						hash = hash.replace(/^\$2[aby]\$/,
+							variant === "$2b$" || variant === "$2y$" || variant === "$2a$" ? variant : "$2b$"
+						);
+
+				// htpasswd line
+				const htpasswdLine = `${username}:${hash}`;
+				// Escaped version: replace every $ with $$
+				const htpasswdEscaped = htpasswdLine.replace(/\$/g, "$$$$");
+
+				document.getElementById("basicHeader").value = header;
+				document.getElementById("htpasswdLine").value = htpasswdLine;
+				document.getElementById("htpasswdEscaped").value = htpasswdEscaped;
+				document.getElementById("bcryptOnly").value = hash;
+				document.getElementById("userPassMasked").value = combined;
+			}
+
+			async function copyFrom(selector) {
+				const el = document.querySelector(selector);
+				if (!el) return;
+				const text = ('value' in el) ? el.value : (el.textContent || "");
+				// Try modern Clipboard API first
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					try {
+						await navigator.clipboard.writeText(text);
+						return;
+					} catch (_) { /* fall back below */ }
+				}
+				// Fallback: create a temporary textarea to copy from
+				const ta = document.createElement('textarea');
+				ta.value = text;
+				ta.setAttribute('readonly', '');
+				ta.style.position = 'absolute';
+				ta.style.left = '-9999px';
+				document.body.appendChild(ta);
+				ta.select();
+				ta.setSelectionRange(0, ta.value.length);
+				document.execCommand('copy');
+				document.body.removeChild(ta);
+			}
+
+			document.getElementById("generateBtn").addEventListener("click", (e) => {
+				e.preventDefault();
+				generate();
+			});
+			document.getElementById("randomBtn").addEventListener("click", async (e) => {
+				e.preventDefault();
+				try {
+					const u = await randomSha1Hex();
+					const p = await randomSha1Hex();
+					document.getElementById("username").value = u;
+					document.getElementById("password").value = p;
+					generate();
+				} catch (err) {
+					alert(err.message || String(err));
+				}
+			});
+			document.getElementById("clearBtn").addEventListener("click", (e) => {
+				e.preventDefault();
+				for (const id of ["username", "password"]) document.getElementById(id).value = "";
+				for (const id of ["basicHeader", "htpasswdLine", "htpasswdEscaped", "bcryptOnly", "userPassMasked"]) document.getElementById(id).value = "";
+			});
+			document.getElementById("showpw").addEventListener("change", (e) => {
+				document.getElementById("password").type = e.target.checked ? "text" : "password";
+			});
+			for (const btn of document.querySelectorAll('button[data-copy]')) {
+				btn.addEventListener('click', async (e) => {
+					const sel = e.currentTarget.getAttribute('data-copy');
+					await copyFrom(sel);
+				});
+			}
+
+			// Auto-generate on input changes (small debounce)
+			let t;
+					for (const id of ["username", "password", "rounds", "variant"]) {
+				document.getElementById(id).addEventListener("input", () => {
+					clearTimeout(t);
+					t = setTimeout(generate, 150);
+				});
+			}
+		</script>
+	</body>
+	</html>
+
