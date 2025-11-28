@@ -8,6 +8,7 @@ Usage:
 Example:
 /path/to/add_eduroam.sh wlan0 musterm 123456
 END_OF_USSAGE
+fi
 
 IFNAME=$1
 USER=$2
