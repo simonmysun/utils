@@ -4,7 +4,7 @@ if [ $# -ne 3 ]; then
     cat << END_OF_USSAGE
 Add eduroam to nmcli connections (works for fernuni-hagen)
 Usage:
-/path/to/add_eduroam.sh $IFNAME $USER $PASS
+/path/to/add_eduroam.sh <IFNAME> <USER> <PASS>
 Example:
 /path/to/add_eduroam.sh wlan0 musterm 123456
 END_OF_USSAGE
