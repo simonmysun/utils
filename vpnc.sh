@@ -13,13 +13,14 @@ totp() {
 }
 
 if [ "${#}" -ne 1 ]; then
-    echo "Usage: $0 connect|disconnect"
-    echo ""
-    echo "This script interacts with vpnc to connect or disconnect a VPN using a password and TOTP."
-    echo "Requires /etc/vpnc/vpnc.credentials with PASSWORD and TOTP_SECRET variables."
-    echo "Requires vpnc configured."
-    echo "Requires root privileges."
+    cat << EOF
+Usage: $0 connect|disconnect
 
+This script interacts with vpnc to connect or disconnect a VPN using a password and TOTP.
+Requires /etc/vpnc/vpnc.credentials with PASSWORD and TOTP_SECRET variables. (Setting permissions to 600 is recommended.)
+Requires vpnc configured.
+Requires root privileges.
+EOF
     exit 1
 fi
 if [ "${EUID}" -ne 0 ]; then
