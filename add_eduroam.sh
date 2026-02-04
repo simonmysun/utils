@@ -24,6 +24,7 @@ nmcli connection add \
       802-1x.phase2-auth pap \
       802-1x.identity "${USER}@fernuni-hagen.de" \
       802-1x.anonymous-identity "eduroam@fernuni-hagen.de" \
+      802-1x.domain-suffix-match "fernuni-hagen.de" \
       802-1x.ca-cert /etc/ssl/certs/HARICA_TLS_RSA_Root_CA_2021.pem \
       802-1x.password "${PASS}" \
       ipv4.method auto \
