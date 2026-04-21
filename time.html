@@ -1,1 +1,88 @@
-<script src="time.js"></script>
+#!/usr/bin/env node
+var script = 1; var _ = 1 <script> 1 ;
+
+function getTimezone(date) {
+  // https://stackoverflow.com/questions/11887934/how-to-check-if-the-dst-daylight-saving-time-is-in-effect-and-if-it-is-whats
+  var jan = new Date(date.getFullYear(), 0, 1);
+  var jul = new Date(date.getFullYear(), 6, 1);
+  var stdTimezoneOffset = Math.max(
+    jan.getTimezoneOffset(),
+    jul.getTimezoneOffset(),
+  );
+  var dstObserved = date.getTimezoneOffset() < stdTimezoneOffset;
+  if (dstObserved) {
+    return "CEST (UTC+2)";
+  } else {
+    return " CET (UTC+1)";
+  }
+}
+
+function getDateStrDE(date = new Date()) {
+  var weekday = `${"So,Mo,Di,Mi,Do,Fr,Sa".split(",")[date.getDay()]}.`;
+  var day = `${date.getDate()}.`.padStart(3, " ");
+  var month = `${"Jan,Feb,Mrz,Apr,Mai,Jun,Jul,Aug,Sep,Okt,Nov,Dez".split(",")[date.getMonth()]}.`;
+  var year = date.getFullYear();
+  var ts = date.toTimeString().slice(0, 8);
+  var tz = getTimezone(date);
+  return `${weekday} ${day} ${month} ${year} ${ts} ${tz}`;
+}
+
+if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+  var args = process.argv.slice(2);
+  var inputDate = args.length > 0 ? new Date(args.join(' ')) : new Date();
+  if (isNaN(inputDate.getTime())) {
+    console.error('Invalid date: ' + args.join(' '));
+    process.exit(1);
+  }
+  console.log(getDateStrDE(inputDate));
+}
+
+// </script>
+
+/*
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DE Date String</title>
+  <style>
+    body { font-size: 0; margin: 0; color: transparent; }
+    div { font-size: 16px; min-height: 100vh; color: black }
+  </style>
+</head>
+<body>
+  <div>
+    <span></span>
+    <button>copy</button>
+    <span></span>
+  </div>
+  <script>
+    var hashInput = location.hash.slice(1);
+    var inputDate = hashInput ? new Date(decodeURIComponent(hashInput)) : new Date();
+    var dateStr = isNaN(inputDate.getTime()) ? 'Invalid date: ' + hashInput : getDateStrDE(inputDate);
+    var elDateStr = document.querySelector('div>span:first-child');
+    var elCopyBtn = document.querySelector('div>button');
+    var elCopiedMsg = document.querySelector('div>span:last-child');
+    elDateStr.textContent = dateStr;
+    window.addEventListener('hashchange', function() {
+      var h = location.hash.slice(1);
+      var d = h ? new Date(decodeURIComponent(h)) : new Date();
+      dateStr = isNaN(d.getTime()) ? 'Invalid date: ' + h : getDateStrDE(d);
+      elDateStr.textContent = dateStr;
+    });
+    elCopyBtn.onclick = function() {
+      navigator.clipboard.writeText(elDateStr.textContent).then(function() {
+        elCopiedMsg.textContent = 'Copied!';
+        setTimeout(function() { elCopiedMsg.textContent = ''; }, 200);
+      });
+    };
+    setInterval(function() {
+      var h = location.hash.slice(1);
+      var d = h ? new Date(decodeURIComponent(h)) : new Date();
+      dateStr = isNaN(d.getTime()) ? 'Invalid date: ' + h : getDateStrDE(d);
+      elDateStr.textContent = dateStr;
+    }, 500);
+  </script>
+</body>
+</html>
+*/
