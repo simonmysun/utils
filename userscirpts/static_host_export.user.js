@@ -4,8 +4,8 @@
 // @version      0.2
 // @description  append text url
 // @author       You
-// @updateURL    https://raw.githubusercontent.com/simonmysun/utils/gh-pages/userscripts/static_host_export.user.js
-// @downloadURL  https://raw.githubusercontent.com/simonmysun/utils/gh-pages/userscripts/static_host_export.user.js
+// @updateURL    https://github.com/simonmysun/utils/raw/refs/heads/gh-pages/userscirpts/static_host_export.user.js
+// @downloadURL  https://github.com/simonmysun/utils/raw/refs/heads/gh-pages/userscirpts/static_host_export.user.js
 // @supportURL   https://github.com/simonmysun/utils/issues
 // @match        https://psb46805.seedbox.io/files/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=seedbox.io

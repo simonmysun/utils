@@ -4,8 +4,8 @@
 // @version      0.1.1
 // @description  try to take over the world!
 // @author       simonmysun
-// @updateURL    https://raw.githubusercontent.com/simonmysun/praxis/raw/gh-pages/userscripts/lastTab.user.js
-// @downloadURL  https://raw.githubusercontent.com/simonmysun/praxis/raw/gh-pages/userscripts/lastTab.user.js
+// @updateURL    https://github.com/simonmysun/utils/raw/refs/heads/gh-pages/userscirpts/lastTab.user.js
+// @downloadURL  https://github.com/simonmysun/utils/raw/refs/heads/gh-pages/userscirpts/lastTab.user.js
 // @supportURL   https://github.com/simonmysun/praxis/issues
 // @match        https://calendar.google.com/*
 // @match        https://mail.google.com/*
