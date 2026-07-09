@@ -157,6 +157,7 @@ async function autoMerge() {
   const provider = getSuggestionProvider();
   if (items.length < 2 || !provider.available) return;
 
+  const allowReorder = $('reorder-toggle').checked;
   autoMergeBtn.disabled = true;
   autoMergeBtn.textContent = 'Analyzing…';
   showError(null);
@@ -165,13 +166,20 @@ async function autoMerge() {
 
   try {
     const { order, perItem, warnings } = await provider.analyze(items, direction, {
-      allowReorder: false,
+      allowReorder,
     });
+    const reordered = order.some((idx, pos) => idx !== pos);
+    if (allowReorder && reordered) {
+      warnings.unshift(`Reordered images to: ${order.map((i) => i + 1).join(' → ')}.`);
+    }
     bumpStructure((s) => {
       const applied = order.map((idx) => {
         const it = s.items[idx];
         const plan = perItem[idx];
-        const crop = { ...it.crop };
+        // Auto-merge yields a complete geometry plan, so reset all edges first
+        // (leftover crop/overlap from prior runs or manual edits would corrupt
+        // the result, e.g. stale perpendicular crops shrinking the content box).
+        const crop = { top: 0, right: 0, bottom: 0, left: 0 };
         if (direction === 'vertical') {
           crop.top = plan.cropTop;
           crop.bottom = plan.cropBottom;

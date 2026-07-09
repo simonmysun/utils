@@ -29,7 +29,14 @@
           <button id="dir-horizontal" class="btn toggle" data-dir="horizontal">Horizontal</button>
         </div>
 
-        <button id="auto-merge-btn" class="btn" disabled title="Auto-detect crop &amp; overlap">Auto-merge</button>
+        <div class="auto-group" role="group" aria-label="Auto-merge">
+          <button id="auto-merge-btn" class="btn" disabled title="Auto-detect crop &amp; overlap">Auto-merge</button>
+          <label class="reorder-label" title="Let auto-merge also reorder images by best match">
+            <input id="reorder-toggle" type="checkbox" checked />
+            Reorder
+          </label>
+        </div>
+
         <button id="export-btn" class="btn primary" disabled>Download PNG</button>
       </div>
 
