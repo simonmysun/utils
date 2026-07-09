@@ -4,6 +4,7 @@ import { createStore } from './state.js';
 import { FileImageLoader } from './loaders.js';
 import { createImageItem, rotateItem, setCrop, setOverlap } from './models.js';
 import { PreviewRenderer } from './preview.js';
+import { PanZoom } from './panzoom.js';
 import { exportPng } from './exporter.js';
 import { validate } from './validate.js';
 import { renderControls, applyValidation } from './ui.js';
@@ -20,9 +21,12 @@ const loader = new FileImageLoader();
 const preview = new PreviewRenderer({
   scaleEl: $('preview-scale'),
   canvasEl: $('preview-canvas'),
-  scrollEl: $('preview-scroll'),
   dimsEl: $('preview-dims'),
 });
+const panzoom = new PanZoom($('preview-scroll'), $('preview-scale'));
+panzoom.onChange = (scale) => {
+  $('zoom-level').textContent = `${Math.round(scale * 100)}%`;
+};
 
 const itemListEl = $('item-list');
 const errorBanner = $('error-banner');
@@ -108,8 +112,10 @@ function renderDirectionToggles(direction) {
 }
 
 store.subscribe((state) => {
+  const structural = state.structureVersion !== lastStructureVersion;
+
   // Rebuild control cards only on structural changes (preserves input focus).
-  if (state.structureVersion !== lastStructureVersion) {
+  if (structural) {
     renderControls(itemListEl, state, handlers);
     lastStructureVersion = state.structureVersion;
   }
@@ -122,11 +128,12 @@ store.subscribe((state) => {
 
   exportBtn.disabled = !result.valid;
 
-  if (result.valid) {
-    preview.render(state.items, state.direction);
-  } else {
-    preview.render(state.items, state.direction); // still show what we can
-  }
+  // Always render what we can, even when invalid.
+  const size = preview.render(state.items, state.direction);
+  panzoom.setContentSize(size.w, size.h);
+  // Re-fit on structural changes; keep the user's view during fine edits.
+  if (structural) panzoom.fit();
+  else panzoom.reapply();
 });
 
 // --- events -------------------------------------------------------------
@@ -150,10 +157,12 @@ exportBtn.addEventListener('click', async () => {
   }
 });
 
-window.addEventListener('resize', () => {
-  const s = store.get();
-  preview.fit(s.items, s.direction);
-});
+$('zoom-in').addEventListener('click', () => panzoom.zoomBy(1.25));
+$('zoom-out').addEventListener('click', () => panzoom.zoomBy(1 / 1.25));
+$('zoom-fit-w').addEventListener('click', () => panzoom.fitWidth());
+$('zoom-fit-h').addEventListener('click', () => panzoom.fitHeight());
+
+window.addEventListener('resize', () => panzoom.reapply());
 
 // initial paint
 store.set((s) => ({ ...s }));

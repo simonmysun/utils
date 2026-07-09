@@ -1,16 +1,20 @@
 // CSS/DOM preview renderer (no Canvas). Builds one overflow-hidden viewport
 // per image and lets flexbox lay them out along the stitch axis.
+// Zoom/pan of the whole composite is handled separately by PanZoom.
 
 import { contentBox, cssImageTransform, compositeSize } from './geometry.js';
 
 export class PreviewRenderer {
-  constructor({ scaleEl, canvasEl, scrollEl, dimsEl }) {
+  constructor({ scaleEl, canvasEl, dimsEl }) {
     this.scaleEl = scaleEl;
     this.canvasEl = canvasEl;
-    this.scrollEl = scrollEl;
     this.dimsEl = dimsEl;
   }
 
+  /**
+   * Build the composite DOM and size the (pan/zoom) layer to match.
+   * @returns {{w: number, h: number}} composite pixel size
+   */
   render(items, direction) {
     const canvas = this.canvasEl;
     canvas.className = `preview-canvas ${direction}`;
@@ -31,44 +35,24 @@ export class PreviewRenderer {
       img.height = item.naturalHeight;
       img.style.transform = cssImageTransform(item);
       img.alt = item.name;
+      img.draggable = false;
 
       view.appendChild(img);
       canvas.appendChild(view);
     });
 
-    this.updateDims(items, direction);
-    this.fit(items, direction);
+    const size = items.length ? compositeSize(items, direction) : { w: 0, h: 0 };
+    this.scaleEl.style.width = `${Math.max(0, size.w)}px`;
+    this.scaleEl.style.height = `${Math.max(0, size.h)}px`;
+
+    this.updateDims(items, size);
+    return size;
   }
 
-  updateDims(items, direction) {
+  updateDims(items, size) {
     if (!this.dimsEl) return;
-    if (items.length === 0) {
-      this.dimsEl.textContent = '';
-      return;
-    }
-    const { w, h } = compositeSize(items, direction);
-    this.dimsEl.textContent = `${Math.round(w)} × ${Math.round(h)} px`;
-  }
-
-  // Scale the composite down to fit the available preview area.
-  fit(items, direction) {
-    if (items.length === 0) {
-      this.scaleEl.style.transform = 'scale(1)';
-      return;
-    }
-    const { w, h } = compositeSize(items, direction);
-    if (w <= 0 || h <= 0) {
-      this.scaleEl.style.transform = 'scale(1)';
-      return;
-    }
-    const pad = 32;
-    const availW = Math.max(50, this.scrollEl.clientWidth - pad);
-    const availH = Math.max(50, this.scrollEl.clientHeight - pad);
-    // Never upscale beyond 1; fit within both dimensions.
-    const scale = Math.min(1, availW / w, availH / h);
-    this.scaleEl.style.transform = `scale(${scale})`;
-    // Reserve layout space so scrollbars behave with the scaled content.
-    this.scaleEl.style.width = `${w}px`;
-    this.scaleEl.style.height = `${h}px`;
+    this.dimsEl.textContent = items.length
+      ? `${Math.round(size.w)} × ${Math.round(size.h)} px`
+      : '';
   }
 }

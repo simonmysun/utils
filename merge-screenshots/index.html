@@ -41,7 +41,14 @@
     <section class="panel preview-panel" aria-label="Preview">
       <div class="preview-head">
         <h2>Preview</h2>
-        <span id="preview-dims" class="dims"></span>
+        <div class="preview-tools">
+          <span id="preview-dims" class="dims"></span>
+          <button id="zoom-out" class="btn icon" title="Zoom out" aria-label="Zoom out">−</button>
+          <span id="zoom-level" class="zoom-level">100%</span>
+          <button id="zoom-in" class="btn icon" title="Zoom in" aria-label="Zoom in">+</button>
+          <button id="zoom-fit-w" class="btn" title="Fit width">Fit W</button>
+          <button id="zoom-fit-h" class="btn" title="Fit height">Fit H</button>
+        </div>
       </div>
       <div id="preview-scroll" class="preview-scroll">
         <div id="preview-scale" class="preview-scale">

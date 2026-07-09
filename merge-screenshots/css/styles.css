@@ -143,14 +143,17 @@ body {
 .item-meta { font-size: 11px; color: var(--muted); }
 .item-actions { display: flex; gap: 4px; }
 
-.crop-grid {
+.crop-grid { display: flex; flex-direction: column; gap: 6px; }
+
+.slider-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-template-columns: 74px 1fr 64px;
+  align-items: center;
+  gap: 8px;
 }
-.field { display: flex; flex-direction: column; gap: 3px; }
-.field label { font-size: 11px; color: var(--muted); }
-.field input[type="number"] {
+.slider-row > label { font-size: 11px; color: var(--muted); }
+.slider-row input[type="range"] { width: 100%; }
+.slider-row input[type="number"] {
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -161,13 +164,10 @@ body {
 }
 .overlap-row {
   margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
 }
-.overlap-row label { font-size: 11px; color: var(--muted); }
-.overlap-row input[type="range"] { flex: 1; }
-.overlap-row input[type="number"] { width: 70px; }
+.overlap-row > label { color: var(--text); }
 
 .item-error { color: #ffb4ae; font-size: 11px; margin-top: 6px; }
 
@@ -175,23 +175,42 @@ body {
 .preview-panel { overflow: hidden; }
 .preview-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  padding: 12px;
+  gap: 12px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
 }
 .preview-head h2 { margin: 0; font-size: 14px; }
 .dims { color: var(--muted); font-size: 12px; }
 
+.preview-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.zoom-level {
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 42px;
+  text-align: center;
+}
+
 .preview-scroll {
   flex: 1;
-  overflow: auto;
-  padding: 16px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
 }
-.preview-scale { transform-origin: top left; }
+.preview-scroll.panning { cursor: grabbing; }
+.preview-scale {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  will-change: transform;
+}
 
 .preview-canvas {
   display: flex;

@@ -54,56 +54,33 @@ export function renderControls(container, state, handlers) {
 
     head.append(thumb, headText, actions);
 
-    // Crop grid
+    // Crop rows (slider + number per edge)
+    const rotated = rotatedDims(item);
     const grid = document.createElement('div');
     grid.className = 'crop-grid';
     EDGES.forEach((edge) => {
-      const field = document.createElement('div');
-      field.className = 'field';
-      const label = document.createElement('label');
-      label.textContent = `Crop ${edge}`;
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.min = '0';
-      input.value = String(item.crop[edge]);
-      input.addEventListener('input', () => handlers.onCrop(item.id, edge, input.value));
-      field.append(label, input);
-      grid.appendChild(field);
+      const extent = edge === 'top' || edge === 'bottom' ? rotated.h : rotated.w;
+      const max = Math.max(0, extent - 1);
+      const row = sliderRow({
+        label: `Crop ${edge}`,
+        value: item.crop[edge],
+        max,
+        onInput: (v) => handlers.onCrop(item.id, edge, v),
+      });
+      grid.appendChild(row);
     });
 
     card.append(head, grid);
 
     // Overlap-with-next (not shown on last item)
     if (!isLast) {
-      const maxOverlap = overlapMax(item, direction);
-      const row = document.createElement('div');
-      row.className = 'overlap-row';
-
-      const label = document.createElement('label');
-      label.textContent = 'Overlap next';
-
-      const range = document.createElement('input');
-      range.type = 'range';
-      range.min = '0';
-      range.max = String(maxOverlap);
-      range.value = String(Math.min(item.overlapNext, maxOverlap));
-
-      const num = document.createElement('input');
-      num.type = 'number';
-      num.min = '0';
-      num.max = String(maxOverlap);
-      num.value = String(item.overlapNext);
-
-      range.addEventListener('input', () => {
-        num.value = range.value;
-        handlers.onOverlap(item.id, range.value);
+      const row = sliderRow({
+        label: 'Overlap next',
+        value: item.overlapNext,
+        max: overlapMax(item, direction),
+        onInput: (v) => handlers.onOverlap(item.id, v),
       });
-      num.addEventListener('input', () => {
-        range.value = num.value;
-        handlers.onOverlap(item.id, num.value);
-      });
-
-      row.append(label, range, num);
+      row.classList.add('overlap-row');
       card.appendChild(row);
     }
 
@@ -116,14 +93,56 @@ export function renderControls(container, state, handlers) {
   });
 }
 
-function overlapMax(item, direction) {
+function rotatedDims(item) {
   const rot = ((item.rotation % 360) + 360) % 360;
-  const rW = rot % 180 === 0 ? item.naturalWidth : item.naturalHeight;
-  const rH = rot % 180 === 0 ? item.naturalHeight : item.naturalWidth;
+  return rot % 180 === 0
+    ? { w: item.naturalWidth, h: item.naturalHeight }
+    : { w: item.naturalHeight, h: item.naturalWidth };
+}
+
+function overlapMax(item, direction) {
+  const { w: rW, h: rH } = rotatedDims(item);
   const along = direction === 'vertical'
     ? rH - item.crop.top - item.crop.bottom
     : rW - item.crop.left - item.crop.right;
   return Math.max(0, along - 1);
+}
+
+/**
+ * A labelled control: range slider + number input kept in sync.
+ * The number input allows values beyond `max` (over-crop is caught by
+ * validation), while the slider is bounded to [0, max].
+ */
+function sliderRow({ label: labelText, value, max, onInput }) {
+  const row = document.createElement('div');
+  row.className = 'slider-row';
+
+  const label = document.createElement('label');
+  label.textContent = labelText;
+
+  const range = document.createElement('input');
+  range.type = 'range';
+  range.min = '0';
+  range.max = String(Math.max(0, max));
+  range.value = String(Math.min(value, max));
+
+  const num = document.createElement('input');
+  num.type = 'number';
+  num.min = '0';
+  num.value = String(value);
+
+  range.addEventListener('input', () => {
+    num.value = range.value;
+    onInput(range.value);
+  });
+  num.addEventListener('input', () => {
+    const v = Number(num.value) || 0;
+    range.value = String(Math.min(Math.max(0, v), max));
+    onInput(num.value);
+  });
+
+  row.append(label, range, num);
+  return row;
 }
 
 function iconBtn(text, title, onClick, disabled = false, extra = '') {
