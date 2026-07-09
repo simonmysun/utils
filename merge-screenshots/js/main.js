@@ -8,6 +8,7 @@ import { PanZoom } from './panzoom.js';
 import { exportPng } from './exporter.js';
 import { validate } from './validate.js';
 import { renderControls, applyValidation } from './ui.js';
+import { getSuggestionProvider } from './suggest.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -31,6 +32,7 @@ panzoom.onChange = (scale) => {
 const itemListEl = $('item-list');
 const errorBanner = $('error-banner');
 const exportBtn = $('export-btn');
+const autoMergeBtn = $('auto-merge-btn');
 
 // --- state helpers ------------------------------------------------------
 
@@ -127,6 +129,7 @@ store.subscribe((state) => {
   showError(state.items.length > 0 ? result.message : null);
 
   exportBtn.disabled = !result.valid;
+  autoMergeBtn.disabled = state.items.length < 2 || !getSuggestionProvider().available;
 
   // Always render what we can, even when invalid.
   const size = preview.render(state.items, state.direction);
@@ -148,6 +151,50 @@ document.querySelectorAll('.btn.toggle').forEach((btn) => {
     bumpStructure((s) => ({ ...s, direction: btn.dataset.dir }));
   });
 });
+
+async function autoMerge() {
+  const { items, direction } = store.get();
+  const provider = getSuggestionProvider();
+  if (items.length < 2 || !provider.available) return;
+
+  autoMergeBtn.disabled = true;
+  autoMergeBtn.textContent = 'Analyzing…';
+  showError(null);
+  // Yield once so the button label paints before the synchronous analysis.
+  await new Promise((r) => setTimeout(r, 0));
+
+  try {
+    const { order, perItem, warnings } = await provider.analyze(items, direction, {
+      allowReorder: false,
+    });
+    bumpStructure((s) => {
+      const applied = order.map((idx) => {
+        const it = s.items[idx];
+        const plan = perItem[idx];
+        const crop = { ...it.crop };
+        if (direction === 'vertical') {
+          crop.top = plan.cropTop;
+          crop.bottom = plan.cropBottom;
+        } else {
+          crop.left = plan.cropTop;
+          crop.right = plan.cropBottom;
+        }
+        return { ...it, crop, overlapNext: plan.overlapNext };
+      });
+      return { ...s, items: applied };
+    });
+    if (warnings.length) {
+      const cur = errorBanner.hidden ? '' : errorBanner.textContent;
+      showError(cur ? `${cur} ${warnings.join(' ')}` : warnings.join(' '));
+    }
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    autoMergeBtn.textContent = 'Auto-merge';
+  }
+}
+
+autoMergeBtn.addEventListener('click', autoMerge);
 
 exportBtn.addEventListener('click', async () => {
   try {
