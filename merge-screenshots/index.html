@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Screenshot Merge Tool</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Screenshot Merge Tool</h1>
+    <p class="subtitle">Upload multiple screenshots and merge them into one continuous image.</p>
+  </header>
+
+  <div id="error-banner" class="error-banner" hidden></div>
+
+  <main class="layout">
+    <!-- Control panel -->
+    <section class="panel controls" aria-label="Controls">
+      <div class="toolbar">
+        <label class="btn primary">
+          Add images
+          <input id="file-input" type="file" accept="image/*" multiple hidden />
+        </label>
+
+        <div class="direction-group" role="group" aria-label="Stitch direction">
+          <span class="group-label">Direction</span>
+          <button id="dir-vertical" class="btn toggle" data-dir="vertical">Vertical</button>
+          <button id="dir-horizontal" class="btn toggle" data-dir="horizontal">Horizontal</button>
+        </div>
+
+        <div class="auto-group" role="group" aria-label="Auto-merge">
+          <button id="auto-merge-btn" class="btn" disabled title="Auto-detect crop &amp; overlap">Auto-merge</button>
+          <label class="reorder-label" title="Let auto-merge also reorder images by best match">
+            <input id="reorder-toggle" type="checkbox" checked />
+            Reorder
+          </label>
+        </div>
+
+        <button id="export-btn" class="btn primary" disabled>Download PNG</button>
+      </div>
+
+      <div id="item-list" class="item-list" aria-label="Image sequence">
+        <p class="empty-hint">No images yet. Click <strong>Add images</strong> to begin.</p>
+      </div>
+    </section>
+
+    <!-- Preview -->
+    <section class="panel preview-panel" aria-label="Preview">
+      <div class="preview-head">
+        <h2>Preview</h2>
+        <div class="preview-tools">
+          <span id="preview-dims" class="dims"></span>
+          <button id="zoom-out" class="btn icon" title="Zoom out" aria-label="Zoom out">−</button>
+          <span id="zoom-level" class="zoom-level">100%</span>
+          <button id="zoom-in" class="btn icon" title="Zoom in" aria-label="Zoom in">+</button>
+          <button id="zoom-fit-w" class="btn" title="Fit width">Fit W</button>
+          <button id="zoom-fit-h" class="btn" title="Fit height">Fit H</button>
+        </div>
+      </div>
+      <div id="preview-scroll" class="preview-scroll">
+        <div id="preview-scale" class="preview-scale">
+          <div id="preview-canvas" class="preview-canvas"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
