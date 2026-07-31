@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>循环事件生成器 → ICS</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel2: #1f232c;
+    --border: #2c313c;
+    --text: #e6e9ef;
+    --muted: #98a2b3;
+    --accent: #4f8cff;
+    --accent2: #22c55e;
+    --danger: #ef4444;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 14px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .tag { font-size: 11px; background: var(--panel2); color: var(--muted); padding: 2px 8px; border-radius: 20px; font-weight: normal; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
+  label:first-child { margin-top: 0; }
+  input, select, textarea {
+    width: 100%;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 60px; }
+  textarea.code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px; min-height: 120px; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .row.tight { gap: 6px; }
+  .btn {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn.secondary { background: var(--panel2); border: 1px solid var(--border); }
+  .btn.green { background: var(--accent2); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .hint code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; color: var(--accent); }
+  .cond-block { display: none; }
+  .cond-block.active { display: block; }
+  #preview {
+    max-height: 380px; overflow: auto; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--panel2);
+  }
+  #preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  #preview th, #preview td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  #preview th { position: sticky; top: 0; background: var(--panel); color: var(--muted); font-weight: 600; }
+  #preview td.idx { color: var(--muted); text-align: right; width: 40px; }
+  .status { font-size: 12px; margin-top: 8px; min-height: 18px; }
+  .status.err { color: var(--danger); }
+  .status.ok { color: var(--accent2); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chip { font-size: 11px; background: var(--panel2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 20px; cursor: pointer; color: var(--muted); }
+  .chip:hover { border-color: var(--accent); color: var(--text); }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+  .inline-note { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>循环事件生成器 → ICS</h1>
+  <p class="sub">选择起始时间、循环方式与截止条件，生成一系列事件并导出 .ics。支持农历 / 艾宾浩斯 / 自定义 JS，标题描述支持模板变量。</p>
+
+  <div class="grid">
+    <!-- 左列：输入 -->
+    <div>
+      <div class="card">
+        <h2>1. 起始时间</h2>
+        <div class="row">
+          <div>
+            <label>起始日期时间</label>
+            <input type="datetime-local" id="startDT">
+          </div>
+          <div>
+            <label>事件时长（分钟，0=全天）</label>
+            <input type="number" id="duration" value="60" min="0">
+          </div>
+        </div>
+        <label>时区</label>
+        <select id="tz"></select>
+        <div class="hint" id="tzHint"></div>
+      </div>
+
+      <div class="card">
+        <h2>2. 循环方式 <span class="tag" id="recTag">常规</span></h2>
+        <label>循环类型</label>
+        <select id="recType">
+          <option value="daily">每 N 天</option>
+          <option value="weekly">每 N 周</option>
+          <option value="monthly">每 N 月（公历同日）</option>
+          <option value="yearly">每 N 年（公历同日）</option>
+          <option value="lunar-month">每 N 个农历月（农历同日）</option>
+          <option value="lunar-year">每 N 个农历年（农历同月日）</option>
+          <option value="ebbinghaus">艾宾浩斯记忆曲线</option>
+          <option value="custom-js">自定义 JS</option>
+        </select>
+
+        <!-- 常规间隔 -->
+        <div class="cond-block active" data-rec="daily weekly monthly yearly lunar-month lunar-year">
+          <label>间隔 N</label>
+          <input type="number" id="interval" value="1" min="1">
+        </div>
+
+        <!-- 艾宾浩斯 -->
+        <div class="cond-block" data-rec="ebbinghaus">
+          <label>复习间隔（天，逗号分隔；相对起始日的偏移量）</label>
+          <input type="text" id="ebbList" value="0,1,2,4,7,15,30,60,90,180">
+          <div class="hint">每个数字是距起始日的天数。第一个通常为 0（当天）。</div>
+        </div>
+
+        <!-- 自定义 JS -->
+        <div class="cond-block" data-rec="custom-js">
+          <label>自定义 JS 函数体</label>
+          <textarea class="code" id="customJS">// 返回一个 Date 数组，即所有事件的开始时间。
+// 可用变量: start (Date), count (截止=次数时的目标次数，否则为 null),
+//           until (截止=日期时的 Date，否则为 null), lunar(date) 转农历工具
+// 示例：斐波那契天数偏移
+const days = [0,1,1,2,3,5,8,13,21,34];
+return days.map(d => {
+  const dt = new Date(start);
+  dt.setDate(dt.getDate() + d);
+  return dt;
+});</textarea>
+          <div class="hint">必须 <code>return</code> 一个 Date 数组。会受下方"截止条件"再次裁剪。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>3. 截止条件</h2>
+        <label>方式</label>
+        <select id="endType">
+          <option value="count">按次数</option>
+          <option value="until">按截止日期</option>
+        </select>
+        <div class="cond-block active" data-end="count">
+          <label>总次数</label>
+          <input type="number" id="endCount" value="10" min="1">
+        </div>
+        <div class="cond-block" data-end="until">
+          <label>截止日期（含当天）</label>
+          <input type="date" id="endUntil">
+        </div>
+        <div class="hint">安全上限：最多生成 1000 个事件。</div>
+      </div>
+
+      <div class="card">
+        <h2>4. 事件内容</h2>
+        <label>标题模板</label>
+        <input type="text" id="titleTpl" value="复习 #{{i}} / {{total}}">
+        <label>描述模板</label>
+        <textarea id="descTpl">第 {{i}} 次，共 {{total}} 次。
+公历: {{date}} {{time}}
+农历: {{lunar}}</textarea>
+        <div class="chips" id="varChips"></div>
+        <div class="hint">点击变量插入到最后聚焦的模板输入框。导出的每个事件描述末尾会附加一行编码后的原始输入。</div>
+      </div>
+
+      <div class="card">
+        <h2>5. 恢复 / 编码</h2>
+        <label>粘贴编码串以恢复所有输入</label>
+        <div class="row tight">
+          <input type="text" id="restoreInput" placeholder="RECURGEN:xxxxx 或纯编码">
+          <button class="btn secondary" style="flex:0 0 auto" id="restoreBtn">恢复</button>
+        </div>
+        <div class="hint">编码串也会出现在每个事件描述末尾（<code>RECURGEN:...</code>），可复制回来重新生成。</div>
+      </div>
+    </div>
+
+    <!-- 右列：预览与导出 -->
+    <div>
+      <div class="card">
+        <h2>预览</h2>
+        <div class="btn-row">
+          <button class="btn" id="genBtn">生成 / 刷新预览</button>
+          <button class="btn green" id="exportBtn">导出 .ics</button>
+          <button class="btn secondary" id="copyCodeBtn">复制编码</button>
+        </div>
+        <div class="status" id="status"></div>
+        <div id="preview" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card">
+        <h2>模板变量说明</h2>
+        <div class="hint" style="font-size:12px; line-height:1.9;">
+          <code>{{i}}</code> 序号(从1)　<code>{{i0}}</code> 序号(从0)　<code>{{total}}</code> 总数<br>
+          <code>{{week}}</code> 距起始周序号(从1)　<code>{{offsetDays}}</code> 距起始天数<br>
+          <code>{{date}}</code> 公历日期　<code>{{time}}</code> 时间　<code>{{datetime}}</code> 日期时间<br>
+          <code>{{year}}</code>/<code>{{month}}</code>/<code>{{day}}</code>/<code>{{weekday}}</code><br>
+          <code>{{lunar}}</code> 农历全称　<code>{{lunarDate}}</code> 农历月日　<code>{{ganzhi}}</code> 干支年　<code>{{zodiac}}</code> 生肖<br>
+          <code>{{tz}}</code> 时区　<code>{{tzOffset}}</code> UTC偏移　<code>{{utc}}</code> UTC时间
+        </div>
+        <div class="hint" style="margin-top:10px; padding-top:8px; border-top:1px solid var(--border);">
+          <b style="color:var(--text)">表达式</b>：<code>{{= 表达式 }}</code> 可写任意 JS，能用上面所有变量。<br>
+          例：<code>第 {{= Math.ceil(i/7) }} 周</code>　<code>{{= i*2 }}</code>　<code>{{= week }}</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+ * 农历转换 —— 基于浏览器内置 Intl(ICU) chinese 历法(天文算法)
+ * 覆盖 ICU 支持的全部年份。ICU 仅提供"公历->农历"单向能力,
+ * 故 lunarToSolar/leapMonth/monthDays 由二分反查实现(农历日期
+ * 随公历严格单调, 编码为单调整数 key 后可二分)。
+ * 已对 1900-2100 全区间逐日验证与前一实现零差异, 且
+ * lunarToSolar 内置 solarToLunar 自校验, 定位异常即抛错。
+ * ============================================================ */
+const Lunar = (function () {
+  const gan = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+  const zhi = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+  const animals = ["鼠","牛","虎","兔","龙","蛇","马","羊","猴","鸡","狗","猪"];
+  const nStr1 = ["日","一","二","三","四","五","六","七","八","九","十"];
+  const nStr2 = ["初","十","廿","卅"];
+  const monthStr = ["正","二","三","四","五","六","七","八","九","十","冬","腊"];
+  const MONTHS = ['First','Second','Third','Fourth','Fifth','Sixth',
+    'Seventh','Eighth','Ninth','Tenth','Eleventh','Twelfth'];
+  const DAY = 86400000;
+
+  const dtf = new Intl.DateTimeFormat('en-u-ca-chinese', {
+    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+  });
+
+  function icuParts(dateObj){
+    let ms='', ds='', ry='';
+    for (const p of dtf.formatToParts(dateObj)) {
+      if (p.type==='month') ms = p.value;
+      else if (p.type==='day') ds = p.value;
+      else if (p.type==='relatedYear') ry = p.value;
+    }
+    const isLeap = /bis/.test(ms);
+    const name = ms.replace('bis','').replace(/\s*Month\s*/,' ').trim().split(' ')[0];
+    return { relatedYear:+ry, month: MONTHS.indexOf(name)+1, day:+ds, isLeap };
+  }
+
+  // 农历日期 -> 单调可比较整数。随公历日期严格单调递增:
+  // 平月在前、同号闰月紧随其后 => leap 位排在 day 之上、month 之下。
+  function keyOf(year, month, day, isLeap){
+    return (((year*13 + month)*2) + (isLeap?1:0))*31 + day;
+  }
+  function keyAtUTC(utcMs){ const p=icuParts(new Date(utcMs)); return keyOf(p.relatedYear,p.month,p.day,p.isLeap); }
+  function utcNoon(y,m,d){ return new Date(Date.UTC(y,m,d,12,0,0)); }
+
+  function toGanZhiYear(lY){ const g=(lY-4)%10, z=(lY-4)%12; return gan[(g+10)%10]+zhi[(z+12)%12]; }
+  function toZodiac(lY){ return animals[((lY-4)%12+12)%12]; }
+  function dayStrOf(d){
+    if(d===10) return "初十"; if(d===20) return "二十"; if(d===30) return "三十";
+    return nStr2[Math.floor(d/10)] + nStr1[d%10];
+  }
+  function monthName(m){ return monthStr[m-1] + "月"; }
+
+  function solarToLunar(date){
+    const p = icuParts(utcNoon(date.getFullYear(), date.getMonth(), date.getDate()));
+    const year = p.relatedYear;
+    return {
+      year, month: p.month, day: p.day, isLeap: p.isLeap,
+      ganzhi: toGanZhiYear(year), zodiac: toZodiac(year),
+      monthName: (p.isLeap?"闰":"") + monthName(p.month),
+      dayName: dayStrOf(p.day),
+      full: toGanZhiYear(year)+"年("+toZodiac(year)+") "+(p.isLeap?"闰":"")+monthName(p.month)+dayStrOf(p.day),
+      dateName: (p.isLeap?"闰":"") + monthName(p.month) + dayStrOf(p.day)
+    };
+  }
+
+  // 二分: 返回 key >= target 的最早一天(正午 UTC 毫秒)。[loUTC, hiUTC] 均为正午。
+  function lowerBound(target, loUTC, hiUTC){
+    let lo = loUTC, hi = hiUTC;
+    while(lo < hi){
+      const mid = lo + Math.floor((hi-lo)/DAY/2)*DAY;
+      if(keyAtUTC(mid) < target) lo = mid + DAY;
+      else hi = mid;
+    }
+    return lo;
+  }
+
+  // 农历 -> 公历(本地 Date, 00:00)。二分定位 + solarToLunar 自校验(最终防线)。
+  function lunarToSolar(lYear, month, day, isLeap){
+    const target = keyOf(lYear, month, day, !!isLeap);
+    const loUTC = Date.UTC(lYear-1, 10, 1, 12);
+    const hiUTC = Date.UTC(lYear+1, 6, 1, 12);
+    const found = lowerBound(target, loUTC, hiUTC);
+    const kFound = keyAtUTC(found);
+    const d = new Date(found);
+    const result = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    if(kFound === target){
+      // 命中: 用 solarToLunar 二次确认(口径一致必然成立, 作为最终防线)
+      const chk = solarToLunar(result);
+      if(chk.year===lYear && chk.month===month && chk.day===day && chk.isLeap===!!isLeap) return result;
+      throw new Error('lunarToSolar 自校验失败(命中却反算不符): 输入 '+lYear+'/'+month+'/'+day+(isLeap?"(闰)":"")
+        +' -> '+result.getFullYear()+'-'+(result.getMonth()+1)+'-'+result.getDate()
+        +' 反算 '+chk.year+'/'+chk.month+'/'+chk.day+(chk.isLeap?"(闰)":""));
+    }
+    // 未命中 target。合法情形: target 日期不存在, 即 target 恰好落在 found-1 与 found 之间的空隙。
+    const kPrev = keyAtUTC(found - 86400000);
+    if(kPrev < target && target < kFound) return null; // 确认不存在
+    // 其余情形均为二分/边界异常, 抛错, 绝不静默返回错值。
+    throw new Error('lunarToSolar 自校验失败(定位异常): 输入 '+lYear+'/'+month+'/'+day+(isLeap?"(闰)":"")
+      +' target='+target+' kPrev='+kPrev+' kFound='+kFound);
+  }
+
+  // 该农历年闰月号(1-12)或 0。二分定位正月初一, 逐月用二分跳到下月, 命中闰月即返回。
+  function leapMonth(lYear){
+    const start = lunarToSolar(lYear, 1, 1, false);
+    if(!start) return 0;
+    let cur = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate(), 12);
+    const yearEnd = Date.UTC(lYear+1, 6, 1, 12);
+    for(let guard=0; guard<15; guard++){
+      const p = icuParts(new Date(cur));
+      if(p.relatedYear!==lYear) break;
+      const curKey = keyOf(p.relatedYear,p.month,p.day,p.isLeap);
+      const leapKey = keyOf(lYear, p.month, 1, true);
+      const normKey = keyOf(lYear, (p.month%12)+1, 1, false);
+      const cand = Math.min(
+        leapKey>curKey ? leapKey : Infinity,
+        normKey>curKey ? normKey : Infinity
+      );
+      if(!isFinite(cand)) break;
+      const nUTC = lowerBound(cand, cur, yearEnd);
+      const np = icuParts(new Date(nUTC));
+      if(np.relatedYear!==lYear) break;
+      if(np.isLeap) return np.month;
+      cur = nUTC;
+    }
+    return 0;
+  }
+
+  function monthLen(lYear, month, isLeap){
+    const first = lunarToSolar(lYear, month, 1, isLeap);
+    if(!first) return 0;
+    const d=new Date(first); d.setDate(d.getDate()+29);
+    const p=icuParts(utcNoon(d.getFullYear(),d.getMonth(),d.getDate()));
+    return (p.relatedYear===lYear && p.month===month && p.day===30 && p.isLeap===!!isLeap) ? 30 : 29;
+  }
+  function monthDays(lYear, month){ return monthLen(lYear, month, false); }
+  function leapDays(lYear){ const lm=leapMonth(lYear); return lm? monthLen(lYear, lm, true):0; }
+
+  return { solarToLunar, lunarToSolar, leapMonth, monthDays, leapDays };
+})();
+
+/* ============================================================
+ * 表单读写
+ * ============================================================ */
+const $ = id => document.getElementById(id);
+
+function collectState(){
+  return {
+    startDT: $('startDT').value,
+    tz: $('tz').value,
+    duration: +$('duration').value,
+    recType: $('recType').value,
+    interval: +$('interval').value,
+    ebbList: $('ebbList').value,
+    customJS: $('customJS').value,
+    endType: $('endType').value,
+    endCount: +$('endCount').value,
+    endUntil: $('endUntil').value,
+    titleTpl: $('titleTpl').value,
+    descTpl: $('descTpl').value,
+  };
+}
+
+function applyState(s){
+  if(!s) return;
+  const set = (id,v)=>{ if(v!==undefined && v!==null && $(id)) $(id).value = v; };
+  set('startDT', s.startDT); set('duration', s.duration);
+  if(s.tz){ ensureTzOption(s.tz); set('tz', s.tz); }
+  set('recType', s.recType); set('interval', s.interval);
+  set('ebbList', s.ebbList); set('customJS', s.customJS);
+  set('endType', s.endType); set('endCount', s.endCount);
+  set('endUntil', s.endUntil); set('titleTpl', s.titleTpl);
+  set('descTpl', s.descTpl);
+  updateCondBlocks();
+}
+
+/* ---- 编码：UTF-8 安全 base64 ---- */
+function encodeState(s){
+  const json = JSON.stringify(s);
+  const bytes = new TextEncoder().encode(json);
+  let bin = '';
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+function decodeState(str){
+  str = str.trim().replace(/^RECURGEN:/, '').trim();
+  const bin = atob(str);
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  const json = new TextDecoder().decode(bytes);
+  return JSON.parse(json);
+}
+
+/* ============================================================
+ * 事件生成
+ * ============================================================ */
+const MAX_EVENTS = 1000;
+
+function addMonthsSolar(base, n){
+  const d = new Date(base);
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  const dim = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  d.setDate(Math.min(day, dim));
+  return d;
+}
+function addYearsSolar(base, n){
+  const d = new Date(base);
+  const m = d.getMonth(), day = d.getDate();
+  d.setFullYear(d.getFullYear()+n);
+  // 处理 2/29
+  if(d.getMonth() !== m) d.setDate(0);
+  return d;
+}
+
+// 农历加月：把起始日的农历取出，逐月推进 n 个农历月，保留农历日（不足则取当月最后一天）
+function addLunarMonths(base, n, hour, minute){
+  const l = Lunar.solarToLunar(base);
+  // 将农历(年,月,闰,日)转成"绝对农历月序号"再加 n
+  // 简化：从起始农历逐步 +1 月 n 次
+  let y = l.year, m = l.month, isLeap = l.isLeap;
+  const targetDay = l.day;
+  for(let k=0;k<n;k++){
+    const leap = Lunar.leapMonth(y);
+    if(isLeap){
+      // 当前是闰月，下一步进入下个正常月
+      isLeap = false; m = m + 1;
+    } else if(leap === m){
+      // 当前正常月且其后有同号闰月 -> 进入闰月
+      isLeap = true;
+    } else {
+      m = m + 1;
+    }
+    if(m > 12){ m = 1; y += 1; isLeap = false; }
+  }
+  // 计算该农历月实际天数
+  const leapNow = Lunar.leapMonth(y);
+  const dim = (isLeap && leapNow===m) ? Lunar.leapDays(y) : Lunar.monthDays(y, m);
+  const day = Math.min(targetDay, dim);
+  const solar = Lunar.lunarToSolar(y, m, day, isLeap);
+  if(!solar) return null;
+  solar.setHours(hour, minute, 0, 0);
+  return solar;
+}
+
+function addLunarYears(base, n, hour, minute){
+  const l = Lunar.solarToLunar(base);
+  const y = l.year + n;
+  if(y > 2100) return null;
+  const leap = Lunar.leapMonth(y);
+  let isLeap = l.isLeap && (leap === l.month);
+  const dim = (isLeap ? Lunar.leapDays(y) : Lunar.monthDays(y, l.month));
+  const day = Math.min(l.day, dim);
+  const solar = Lunar.lunarToSolar(y, l.month, day, isLeap);
+  if(!solar) return null;
+  solar.setHours(hour, minute, 0, 0);
+  return solar;
+}
+
+function generateDates(s){
+  if(!s.startDT) throw new Error('请填写起始日期时间');
+  const start = new Date(s.startDT);
+  if(isNaN(start)) throw new Error('起始日期时间无效');
+  const hour = start.getHours(), minute = start.getMinutes();
+
+  const byCount = s.endType === 'count';
+  const targetCount = byCount ? Math.max(1, s.endCount) : null;
+  let until = null;
+  if(!byCount){
+    if(!s.endUntil) throw new Error('请填写截止日期');
+    until = new Date(s.endUntil + 'T23:59:59');
+    if(isNaN(until)) throw new Error('截止日期无效');
+  }
+
+  let dates = [];
+
+  const pushGuard = () => dates.length < MAX_EVENTS &&
+    (byCount ? dates.length < targetCount : true);
+
+  if(s.recType === 'custom-js'){
+    const fn = new Function('start','count','until','lunar',
+      '"use strict";\n' + s.customJS);
+    const res = fn(new Date(start), targetCount, until,
+      (d)=>Lunar.solarToLunar(d instanceof Date ? d : new Date(d)));
+    if(!Array.isArray(res)) throw new Error('自定义 JS 必须返回一个 Date 数组');
+    dates = res.map(d => d instanceof Date ? d : new Date(d)).filter(d => !isNaN(d));
+    // 按截止条件裁剪
+    dates.sort((a,b)=>a-b);
+    if(byCount) dates = dates.slice(0, targetCount);
+    else dates = dates.filter(d => d <= until);
+    dates = dates.slice(0, MAX_EVENTS);
+    return dates;
+  }
+
+  if(s.recType === 'ebbinghaus'){
+    const offs = s.ebbList.split(',').map(x=>parseFloat(x.trim())).filter(x=>!isNaN(x));
+    if(!offs.length) throw new Error('艾宾浩斯间隔列表为空');
+    for(const o of offs){
+      const d = new Date(start);
+      d.setDate(d.getDate() + Math.round(o));
+      if(!byCount && d > until) continue;
+      dates.push(d);
+      if(dates.length >= MAX_EVENTS) break;
+      if(byCount && dates.length >= targetCount) break;
+    }
+    return dates;
+  }
+
+  // 规则型：逐步生成
+  const interval = Math.max(1, s.interval);
+  let i = 0;
+  while(true){
+    let d;
+    switch(s.recType){
+      case 'daily':   d = new Date(start); d.setDate(d.getDate() + i*interval); break;
+      case 'weekly':  d = new Date(start); d.setDate(d.getDate() + i*interval*7); break;
+      case 'monthly': d = addMonthsSolar(start, i*interval); break;
+      case 'yearly':  d = addYearsSolar(start, i*interval); break;
+      case 'lunar-month': d = (i===0) ? new Date(start) : addLunarMonths(start, i*interval, hour, minute); break;
+      case 'lunar-year':  d = (i===0) ? new Date(start) : addLunarYears(start, i*interval, hour, minute); break;
+      default: throw new Error('未知循环类型');
+    }
+    if(!d || isNaN(d)) break;
+    if(!byCount && d > until) break;
+    dates.push(d);
+    i++;
+    if(dates.length >= MAX_EVENTS) break;
+    if(byCount && dates.length >= targetCount) break;
+    if(i > MAX_EVENTS + 10) break;
+  }
+  return dates;
+}
+
+/* ============================================================
+ * 模板变量
+ * ============================================================ */
+const WEEKDAYS = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function fmtOffset(min){
+  const sign = min<0 ? '-' : '+';
+  const a = Math.abs(min);
+  return `UTC${sign}${pad(Math.floor(a/60))}:${pad(a%60)}`;
+}
+function buildVars(date, index, total, start, tz){
+  const l = Lunar.solarToLunar(date);
+  const offsetDays = Math.round((
+    Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()) -
+    Date.UTC(start.getFullYear(),start.getMonth(),start.getDate())
+  )/86400000);
+  tz = tz || localTZ();
+  const inst = wallDateToInstant(tz, date);   // 该墙上时间对应的绝对时刻
+  const offMin = tzOffsetMinutes(tz, inst);
+  return {
+    i: index+1, i0: index, total,
+    week: Math.floor(offsetDays/7)+1,   // 距起始的周序号(从1)
+    date: `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`,
+    time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+    datetime: `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`,
+    year: date.getFullYear(), month: date.getMonth()+1, day: date.getDate(),
+    weekday: WEEKDAYS[date.getDay()],
+    lunar: l.full, lunarDate: l.dateName, ganzhi: l.ganzhi, zodiac: l.zodiac,
+    offsetDays,
+    tz, tzOffset: fmtOffset(offMin),
+    utc: fmtUTC(inst).replace('T',' ').replace(/(\d{4})(\d{2})(\d{2}) (\d{2})(\d{2})(\d{2})Z/,'$1-$2-$3 $4:$5:$6 UTC')
+  };
+}
+
+// 支持两种占位:
+//   {{name}}        —— 变量替换
+//   {{= expr }}     —— JS 表达式，可用所有变量 (如 {{= Math.ceil(i/7) }})
+function applyTemplate(tpl, vars){
+  return tpl.replace(/\{\{\s*(=)?\s*([\s\S]*?)\s*\}\}/g, (m, isExpr, body) => {
+    if(isExpr){
+      try{
+        const keys = Object.keys(vars);
+        const fn = new Function(...keys, '"use strict";return ('+body+');');
+        const r = fn(...keys.map(k=>vars[k]));
+        return (r===undefined || r===null) ? '' : String(r);
+      }catch(e){ return '{{!'+e.message+'}}'; }
+    }
+    return (body in vars) ? String(vars[body]) : m;
+  });
+}
+
+/* ============================================================
+ * 时区工具
+ * ============================================================ */
+// 给定某时区在某 UTC 瞬时的偏移量(分钟, 东为正)
+function tzOffsetMinutes(tz, utcDate){
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit'
+  });
+  const p = {};
+  for(const part of dtf.formatToParts(utcDate)){ if(part.type!=='literal') p[part.type]=part.value; }
+  let h = p.hour==='24' ? 0 : +p.hour;
+  const asUTC = Date.UTC(+p.year, +p.month-1, +p.day, h, +p.minute, +p.second);
+  return Math.round((asUTC - utcDate.getTime())/60000);
+}
+// 把"某时区的墙上时间(y,mo,d,h,mi)"转换为真正的 Date(绝对时刻)
+function wallToInstant(tz, y, mo, d, h, mi){
+  const guess = Date.UTC(y, mo, d, h, mi, 0);
+  let off = tzOffsetMinutes(tz, new Date(guess));
+  let inst = guess - off*60000;
+  // 二次校正(处理 DST 边界)
+  off = tzOffsetMinutes(tz, new Date(inst));
+  inst = guess - off*60000;
+  return new Date(inst);
+}
+// 把"墙上时间的 Date(用本地字段表示墙钟)"按选定时区转成绝对时刻
+function wallDateToInstant(tz, wall){
+  return wallToInstant(tz, wall.getFullYear(), wall.getMonth(), wall.getDate(),
+    wall.getHours(), wall.getMinutes());
+}
+// 常用时区快捷项 + 系统时区
+function tzList(){
+  let all = [];
+  try{ all = Intl.supportedValuesOf('timeZone'); }catch(e){}
+  const common = ['UTC','Asia/Shanghai','Asia/Hong_Kong','Asia/Taipei','Asia/Tokyo',
+    'Asia/Singapore','Asia/Kolkata','Asia/Dubai','Europe/London','Europe/Paris',
+    'Europe/Berlin','Europe/Moscow','America/New_York','America/Chicago',
+    'America/Denver','America/Los_Angeles','America/Sao_Paulo','Australia/Sydney',
+    'Pacific/Auckland'];
+  if(!all.length) all = common;
+  return { all, common };
+}
+function localTZ(){
+  try{ return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; }catch(e){ return 'UTC'; }
+}
+
+/* ============================================================
+ * ICS 生成
+ * ============================================================ */
+function icsEscape(t){
+  return String(t).replace(/\\/g,'\\\\').replace(/;/g,'\\;')
+    .replace(/,/g,'\\,').replace(/\n/g,'\\n');
+}
+function fmtLocal(d){
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+function fmtDate(d){
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+}
+function fmtUTC(d){
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+}
+// 折叠长行（RFC5545 每行 <=75 字节，简化按字符）
+function foldLine(line){
+  if(line.length <= 74) return line;
+  let out = '', rest = line;
+  out = rest.slice(0,74);
+  rest = rest.slice(74);
+  while(rest.length){ out += '\r\n ' + rest.slice(0,73); rest = rest.slice(73); }
+  return out;
+}
+
+function buildICS(dates, s, code){
+  const start = new Date(s.startDT);
+  const tz = s.tz || localTZ();
+  const total = dates.length;
+  const now = fmtUTC(new Date());
+  const allDay = s.duration === 0;
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//RecurGen//ICS//CN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-TIMEZONE:' + tz
+  ];
+  dates.forEach((d, idx) => {
+    const vars = buildVars(d, idx, total, start, tz);
+    const title = applyTemplate(s.titleTpl, vars);
+    let desc = applyTemplate(s.descTpl, vars);
+    desc += '\n\nRECURGEN:' + code;
+    const uid = `recurgen-${now}-${idx}@local`;
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:' + uid);
+    lines.push('DTSTAMP:' + now);
+    if(allDay){
+      const end = new Date(d); end.setDate(end.getDate()+1);
+      lines.push('DTSTART;VALUE=DATE:' + fmtDate(d));
+      lines.push('DTEND;VALUE=DATE:' + fmtDate(end));
+    } else {
+      // d 是"选定时区的墙上时间"，转成绝对 UTC 时刻写入
+      const startInst = wallDateToInstant(tz, d);
+      const endInst = new Date(startInst.getTime() + s.duration*60000);
+      lines.push('DTSTART:' + fmtUTC(startInst));
+      lines.push('DTEND:' + fmtUTC(endInst));
+    }
+    lines.push(foldLine('SUMMARY:' + icsEscape(title)));
+    lines.push(foldLine('DESCRIPTION:' + icsEscape(desc)));
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.map(foldLine).join('\r\n');
+}
+
+/* ============================================================
+ * UI 交互
+ * ============================================================ */
+function updateCondBlocks(){
+  const rec = $('recType').value;
+  const tags = {daily:'常规',weekly:'常规',monthly:'常规',yearly:'常规',
+    'lunar-month':'农历','lunar-year':'农历',ebbinghaus:'艾宾浩斯','custom-js':'自定义JS'};
+  $('recTag').textContent = tags[rec] || '';
+  document.querySelectorAll('[data-rec]').forEach(el => {
+    el.classList.toggle('active', el.dataset.rec.split(' ').includes(rec));
+  });
+  const end = $('endType').value;
+  document.querySelectorAll('[data-end]').forEach(el => {
+    el.classList.toggle('active', el.dataset.end === end);
+  });
+}
+
+let lastFocused = null;
+['titleTpl','descTpl'].forEach(id => {
+  $(id).addEventListener('focus', () => lastFocused = $(id));
+});
+
+const VAR_LIST = ['i','i0','total','week','date','time','datetime','year','month','day',
+  'weekday','lunar','lunarDate','ganzhi','zodiac','offsetDays','tz','tzOffset','utc'];
+function insertAtCursor(text){
+  const t = lastFocused || $('titleTpl');
+  const st = t.selectionStart ?? t.value.length;
+  const en = t.selectionEnd ?? t.value.length;
+  t.value = t.value.slice(0,st) + text + t.value.slice(en);
+  t.focus();
+  const pos = st + text.length;
+  try{ t.setSelectionRange(pos, pos); }catch(e){}
+}
+function renderChips(){
+  const box = $('varChips');
+  VAR_LIST.forEach(v => {
+    const c = document.createElement('span');
+    c.className = 'chip'; c.textContent = '{{'+v+'}}';
+    c.onclick = () => insertAtCursor('{{'+v+'}}');
+    box.appendChild(c);
+  });
+  const e = document.createElement('span');
+  e.className = 'chip'; e.textContent = '{{= 表达式 }}';
+  e.style.borderColor = 'var(--accent)'; e.style.color = 'var(--accent)';
+  e.onclick = () => insertAtCursor('{{= i }}');
+  box.appendChild(e);
+}
+
+function setStatus(msg, cls){
+  const el = $('status'); el.textContent = msg; el.className = 'status ' + (cls||'');
+}
+
+let lastCode = '';
+function generate(){
+  try{
+    const s = collectState();
+    lastCode = encodeState(s);
+    const dates = generateDates(s);
+    if(!dates.length){ setStatus('未生成任何事件，请检查条件', 'err'); $('preview').innerHTML=''; return; }
+    const start = new Date(s.startDT);
+    const tz = s.tz || localTZ();
+    const total = dates.length;
+    let html = '<table><thead><tr><th>#</th><th>开始时间</th><th>星期</th><th>UTC</th><th>农历</th><th>标题</th></tr></thead><tbody>';
+    dates.forEach((d,idx)=>{
+      const vars = buildVars(d, idx, total, start, tz);
+      const title = applyTemplate(s.titleTpl, vars);
+      html += `<tr><td class="idx">${idx+1}</td><td>${vars.datetime}<br><span style="color:var(--muted);font-size:11px">${vars.tzOffset}</span></td><td>${vars.weekday}</td><td style="color:var(--muted)">${vars.utc}</td><td>${vars.lunar}</td><td>${escapeHtml(title)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    $('preview').innerHTML = html;
+    setStatus(`已生成 ${total} 个事件（时区 ${tz}）`, 'ok');
+  }catch(e){
+    setStatus('错误：' + e.message, 'err');
+    $('preview').innerHTML = '';
+  }
+}
+
+function escapeHtml(t){
+  return String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+function exportICS(){
+  try{
+    const s = collectState();
+    const dates = generateDates(s);
+    if(!dates.length){ setStatus('无事件可导出', 'err'); return; }
+    const code = encodeState(s);
+    const ics = buildICS(dates, s, code);
+    const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'');
+    a.href = url; a.download = `recurgen-${stamp}.ics`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    setStatus(`已导出 ${dates.length} 个事件`, 'ok');
+  }catch(e){
+    setStatus('导出错误：' + e.message, 'err');
+  }
+}
+
+/* ---- 时区下拉 ---- */
+function populateTz(){
+  const sel = $('tz');
+  const { all, common } = tzList();
+  const loc = localTZ();
+  sel.innerHTML = '';
+  const og1 = document.createElement('optgroup'); og1.label = '常用';
+  const seen = new Set();
+  const add = (grp, tz, label) => {
+    if(seen.has(tz)) return; seen.add(tz);
+    const o = document.createElement('option'); o.value = tz;
+    o.textContent = label || tz; grp.appendChild(o);
+  };
+  add(og1, loc, `${loc}（本地）`);
+  common.forEach(tz => { if(all.includes(tz) || tz==='UTC') add(og1, tz); });
+  sel.appendChild(og1);
+  const og2 = document.createElement('optgroup'); og2.label = '全部';
+  all.forEach(tz => add(og2, tz));
+  sel.appendChild(og2);
+  sel.value = loc;
+  updateTzHint();
+}
+function ensureTzOption(tz){
+  const sel = $('tz');
+  if(![...sel.options].some(o=>o.value===tz)){
+    const o = document.createElement('option'); o.value = tz; o.textContent = tz;
+    sel.insertBefore(o, sel.firstChild);
+  }
+}
+function updateTzHint(){
+  const tz = $('tz').value;
+  try{
+    const off = fmtOffset(tzOffsetMinutes(tz, new Date()));
+    $('tzHint').textContent = `当前偏移 ${off} · 导出的 .ics 会转换为对应 UTC 时刻`;
+  }catch(e){ $('tzHint').textContent = ''; }
+}
+
+/* ---- 初始化 ---- */
+function init(){
+  // 默认起始时间：明天 09:00
+  const t = new Date(); t.setDate(t.getDate()+1); t.setHours(9,0,0,0);
+  $('startDT').value = `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}T${pad(t.getHours())}:${pad(t.getMinutes())}`;
+  const u = new Date(); u.setMonth(u.getMonth()+1);
+  $('endUntil').value = `${u.getFullYear()}-${pad(u.getMonth()+1)}-${pad(u.getDate())}`;
+
+  populateTz();
+  renderChips();
+  updateCondBlocks();
+
+  $('recType').onchange = updateCondBlocks;
+  $('endType').onchange = updateCondBlocks;
+  $('tz').onchange = () => { updateTzHint(); generate(); };
+  $('genBtn').onclick = generate;
+  $('exportBtn').onclick = exportICS;
+  $('copyCodeBtn').onclick = () => {
+    const code = 'RECURGEN:' + encodeState(collectState());
+    navigator.clipboard.writeText(code).then(
+      ()=>setStatus('编码已复制到剪贴板', 'ok'),
+      ()=>setStatus('复制失败，编码：' + code, 'err'));
+  };
+  $('restoreBtn').onclick = () => {
+    try{
+      const s = decodeState($('restoreInput').value);
+      applyState(s);
+      setStatus('已恢复输入', 'ok');
+      generate();
+    }catch(e){ setStatus('恢复失败：编码无效', 'err'); }
+  };
+
+  // URL hash 恢复：#RECURGEN:...
+  if(location.hash.length > 1){
+    try{ applyState(decodeState(decodeURIComponent(location.hash.slice(1)))); }catch(e){}
+  }
+
+  generate();
+}
+init();
+</script>
+</body>
+</html>
